@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Tracker Web</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Property Tracker</h1>
+        <div class="controls">
+            <button id="refreshBtn">Refresh</button>
+            <select id="sortSelect">
+                <option value="date">Sort by Date (Newest)</option>
+                <option value="price_asc">Sort by Price (Low to High)</option>
+                <option value="price_desc">Sort by Price (High to Low)</option>
+                <option value="title_az">Sort by Name (A-Z)</option>
+                <option value="title_za">Sort by Name (Z-A)</option>
+            </select>
+            <input type="text" id="filterInput" placeholder="Filter by location or agency">
+        </div>
+        <div id="listings"></div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
