@@ -67,4 +67,5 @@ def refresh_listings():
     return jsonify({"success": True, "message": "Scraping started in background."})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
