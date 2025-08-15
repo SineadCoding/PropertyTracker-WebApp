@@ -29,7 +29,7 @@ def fetch_property24():
     page = 1
     while True:
         url = base_url if page == 1 else f"{base_url}/p{page}"
-    print(f"[SCRAPER] Requesting URL: {url}")
+        print(f"[SCRAPER] Requesting URL: {url}")
         html = get_html(url)
         if not html:
             break
@@ -38,7 +38,7 @@ def fetch_property24():
         cards = soup.select("div.p24_regularTile")
         if not cards:
             cards = soup.select(".js_resultTile")
-    print(f"[SCRAPER] Found {len(cards)} property cards on Property24 page {page}.")
+        print(f"[SCRAPER] Found {len(cards)} property cards on Property24 page {page}.")
         if not cards:
             break
         for listing in cards:
@@ -60,10 +60,10 @@ def fetch_property24():
                 prop = Property(title, price, location, agency, link, datetime.today().date())
                 prop.source = source
                 properties.append(prop)
-        print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+            print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+        page += 1
+        time.sleep(random.uniform(2, 5))
     print(f"[SCRAPER] Total listings scraped from Property24: {len(properties)}")
-    page += 1
-    time.sleep(random.uniform(2, 5))
     return properties, True
 import requests
 from bs4 import BeautifulSoup
