@@ -169,9 +169,23 @@ def fetch_all_properties():
                 if props and hasattr(props[0], "source"):
                     successful_sources.append(props[0].source)
                 elif fetch_func.__name__.startswith("fetch_"):
-                    # fallback: use function name as source
                     successful_sources.append(fetch_func.__name__[6:])
-            all_properties.extend(props)
+                # Filter out rentals and incomplete listings
+                filtered = []
+                for p in props:
+                    # Exclude rentals by checking title and price_str
+                    title_str = str(getattr(p, 'title', '')).lower()
+                    price_str = str(getattr(p, 'price', ''))
+                    if 'rent' in title_str or 'rental' in title_str:
+                        continue
+                    # Exclude listings with missing info
+                    if not getattr(p, 'title', None) or not getattr(p, 'location', None) or not getattr(p, 'link', None):
+                        continue
+                    # Exclude listings with link pointing to the web app
+                    if 'propertytracker-webapp' in str(getattr(p, 'link', '')):
+                        continue
+                    filtered.append(p)
+                all_properties.extend(filtered)
         except Exception as e:
             print(f"[ERROR] {fetch_func.__name__} failed: {e}")
     return all_properties, successful_sources

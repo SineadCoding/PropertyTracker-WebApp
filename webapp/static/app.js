@@ -7,6 +7,8 @@ function renderListings(listings) {
     const container = document.getElementById('listings');
     container.innerHTML = '';
     listings.forEach(prop => {
+        // Hide listings with missing info or broken links
+        if (!prop.title || !prop.location || !prop.link || prop.link.includes('propertytracker-webapp')) return;
         const card = document.createElement('div');
         card.className = 'property-card';
         // Ensure link starts with http/https
