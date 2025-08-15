@@ -7,8 +7,8 @@ function renderListings(listings) {
     const container = document.getElementById('listings');
     container.innerHTML = '';
     listings.forEach(prop => {
-        // Hide listings with missing info or broken links
-        if (!prop.title || !prop.location || !prop.link || prop.link.includes('propertytracker-webapp')) return;
+        // Only hide listings with no title AND no location
+        if (!prop.title && !prop.location) return;
         const card = document.createElement('div');
         card.className = 'property-card';
         // Ensure link starts with http/https
@@ -17,9 +17,9 @@ function renderListings(listings) {
             link = 'https://' + link;
         }
         card.innerHTML = `
-            <div class="property-title">${prop.title}</div>
-            <div class="property-details">Location: ${prop.location} | Price: ${typeof prop.price === 'number' ? 'R' + prop.price.toLocaleString() : prop.price} | GBP: £${prop.price_gbp !== undefined && prop.price_gbp !== null ? prop.price_gbp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'} | Agency: ${prop.agency}</div>
-            <div class="property-details">Date: ${prop.date} | <a class="property-link" href="${link}" target="_blank" rel="noopener noreferrer">View Listing</a></div>
+            <div class="property-title">${prop.title || 'No Title'}</div>
+            <div class="property-details">Location: ${prop.location || 'Unknown'} | Price: ${typeof prop.price === 'number' ? 'R' + prop.price.toLocaleString() : prop.price} | GBP: £${prop.price_gbp !== undefined && prop.price_gbp !== null ? prop.price_gbp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'} | Agency: ${prop.agency || 'Unknown'}</div>
+            <div class="property-details">Date: ${prop.date} | <a class="property-link" href="${link || '#'}" target="_blank" rel="noopener noreferrer">View Listing</a></div>
             <div class="property-status">Status: ${prop.status}${prop.sold ? ' (Sold)' : ''}</div>
         `;
         container.appendChild(card);
@@ -54,11 +54,15 @@ function sortListings(listings, key) {
 }
 
 document.getElementById('refreshBtn').onclick = async () => {
-    // Trigger backend refresh (scrape live)
+    // Show loading indicator
+    const container = document.getElementById('listings');
+    container.innerHTML = '<div class="loading">Refreshing listings, please wait...</div>';
     await fetch('/api/refresh', { method: 'POST' });
-    // Now reload listings
-    const listings = await fetchListings();
-    applyFilterSort(listings);
+    // Wait 5 seconds for backend to finish scraping
+    setTimeout(async () => {
+        const listings = await fetchListings();
+        applyFilterSort(listings);
+    }, 5000);
 };
 
 document.getElementById('sortSelect').onchange = async (e) => {
