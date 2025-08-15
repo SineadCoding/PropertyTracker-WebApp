@@ -14,57 +14,7 @@
   {
     "title": "",
     "location": "",
-    "price": 6100000,
-    "agency": "Property24",
-    "link": "",
-    "date": "2025-08-14",
-    "source": "property24",
-    "sold": false,
-    "status": "active",
-    "missing_count": 0
-  },
-  {
-    "title": "",
-    "location": "",
-    "price": 13900000,
-    "agency": "Property24",
-    "link": "",
-    "date": "2025-08-14",
-    "source": "property24",
-    "sold": false,
-    "status": "active",
-    "missing_count": 0
-  },
-  {
-    "title": "",
-    "location": "",
-    "price": 590000,
-    "agency": "Property24",
-    "link": "",
-    "date": "2025-08-14",
-    "source": "property24",
-    "sold": false,
-    "status": "active",
-    "missing_count": 0
-  },
-  {
-    "title": "",
-    "location": "",
-    "price": 6100000,
-    "agency": "Property24",
-    "link": "",
-    "date": "2025-08-14",
-    "source": "property24",
-    "sold": false,
-    "status": "active",
-    "missing_count": 0
-  },
-  {
-    "title": "",
-    "location": "",
-    "price": 8000000,
-    "agency": "Property24",
-    "link": "",
+    []
     "date": "2025-08-14",
     "source": "property24",
     "sold": false,
