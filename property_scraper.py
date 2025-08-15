@@ -69,28 +69,28 @@ def get_html(url):
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1"
     }
-    try:
-        # Random delay between 2 and 7 seconds
-        time.sleep(random.uniform(2, 7))
-        response = requests.get(url, headers=headers, timeout=12)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        print(f"[ERROR] Request failed for {url} -> {e}")
-        return None
-        price_digits = re.sub(r"[^\d]", "", price_str)
-        price = int(price_digits) if price_digits else 0
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            # Longer random delay between 5 and 15 seconds
+            time.sleep(random.uniform(5, 15))
+            response = requests.get(url, headers=headers, timeout=20)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 503:
+                print(f"[ERROR] 503 for {url} (attempt {attempt+1}/{max_retries}), retrying after delay...")
+                time.sleep(random.uniform(20, 40))
+                continue
+            print(f"[ERROR] HTTP error for {url} -> {e}")
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] Request failed for {url} -> {e}")
+            time.sleep(random.uniform(10, 20))
+            continue
+    print(f"[ERROR] Max retries exceeded for {url}")
+    return None
 
-        title = listing.select_one(".p24_title").text.strip() if listing.select_one(".p24_title") else ""
-        location = listing.select_one(".p24_location").text.strip() if listing.select_one(".p24_location") else ""
-        agency_tag = listing.select_one(".p24_branding img")
-        agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "Property24"
-
-        print(f"Scraped: {title} | {location} | {price} | {agency}")
-        prop = Property(title, price, location, agency, link, datetime.today().date())
-        prop.source = source
-        properties.append(prop)
-    return properties, True
 
 def fetch_privateproperty():
     source = "privateproperty"
