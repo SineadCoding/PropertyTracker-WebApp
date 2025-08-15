@@ -1,3 +1,56 @@
+# List of user agents for rotating requests (helps avoid blocking)
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36",
+]
+# Property24 scraper
+def fetch_property24():
+    source = "property24"
+    url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
+    html = get_html(url)
+    if not html:
+        return [], False
+
+    soup = BeautifulSoup(html, "html.parser")
+    properties = []
+    cards = soup.select("div.p24_regularTile")
+    print(f"Found {len(cards)} property cards on Property24.")
+
+    for listing in cards:
+        # Link
+        link_tag = listing.select_one("a.p24_content")
+        link = link_tag["href"] if link_tag and link_tag.get("href") else ""
+        if link.startswith("/"):
+            link = "https://www.property24.com" + link
+
+        # Title
+        title_tag = listing.select_one(".p24_title")
+        title = title_tag.text.strip() if title_tag else ""
+
+        # Location
+        location_tag = listing.select_one(".p24_location")
+        location = location_tag.text.strip() if location_tag else ""
+
+        # Price
+        price_tag = listing.select_one(".p24_price")
+        price_str = price_tag.text if price_tag else ""
+        price_digits = re.sub(r"[^\d]", "", price_str)
+        price = int(price_digits) if price_digits else 0
+
+        # Agency
+        agency_tag = listing.select_one(".p24_brandingLogoBoosted")
+        agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "Property24"
+
+        # Only add if all main info is present
+        if title and location and link and price:
+            prop = Property(title, price, location, agency, link, datetime.today().date())
+            prop.source = source
+            properties.append(prop)
+    return properties, True
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
