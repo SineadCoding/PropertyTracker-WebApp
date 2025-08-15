@@ -42,7 +42,9 @@ def get_listings():
 import threading
 
 def scrape_and_update():
+    print("[SCRAPER] Starting property scrape...")
     properties, sources = fetch_all_properties()
+    print(f"[SCRAPER] Scrape complete. Sources: {sources}. Total properties: {len(properties)}")
     def property_to_dict(prop):
         return {
             "title": getattr(prop, "title", ""),
@@ -59,6 +61,7 @@ def scrape_and_update():
     listings = [property_to_dict(p) for p in properties]
     with open(LISTINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(listings, f, ensure_ascii=False, indent=2)
+    print(f"[SCRAPER] Listings file updated with {len(listings)} properties.")
 
 @app.route('/api/refresh', methods=['POST'])
 def refresh_listings():
