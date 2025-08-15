@@ -1,3 +1,11 @@
+# List of free proxies (can be updated with working proxies)
+PROXIES = [
+    None,  # No proxy (direct)
+    # Example proxies (replace with working ones if needed)
+    # "http://51.158.68.68:8811",
+    # "http://185.61.152.137:8080",
+    # "http://103.216.82.22:6667",
+]
 # List of user agents for rotating requests (helps avoid blocking)
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -9,6 +17,11 @@ USER_AGENTS = [
 ]
 # Property24 scraper
 def fetch_property24():
+    print("[SCRAPER] Starting Property24 scraper...")
+    print(f"[SCRAPER] Requesting URL: {url}")
+    print(f"[SCRAPER] Found {len(cards)} property cards on Property24 page {page}.")
+            print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+    print(f"[SCRAPER] Total listings scraped from Property24: {len(properties)}")
     source = "property24"
     base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
     properties = []
@@ -71,21 +84,24 @@ def get_html(url):
     }
     max_retries = 5
     for attempt in range(max_retries):
+        proxy = random.choice(PROXIES)
+        proxies = {"http": proxy, "https": proxy} if proxy else None
         try:
             # Longer random delay between 5 and 15 seconds
             time.sleep(random.uniform(5, 15))
-            response = requests.get(url, headers=headers, timeout=20)
+            response = requests.get(url, headers=headers, timeout=20, proxies=proxies)
             response.raise_for_status()
+            print(f"[SCRAPER] Success for {url} using proxy: {proxy}")
             return response.text
         except requests.exceptions.HTTPError as e:
             if response.status_code == 503:
-                print(f"[ERROR] 503 for {url} (attempt {attempt+1}/{max_retries}), retrying after delay...")
+                print(f"[ERROR] 503 for {url} (attempt {attempt+1}/{max_retries}), proxy: {proxy}, retrying after delay...")
                 time.sleep(random.uniform(20, 40))
                 continue
-            print(f"[ERROR] HTTP error for {url} -> {e}")
+            print(f"[ERROR] HTTP error for {url} -> {e}, proxy: {proxy}")
             return None
         except requests.exceptions.RequestException as e:
-            print(f"[ERROR] Request failed for {url} -> {e}")
+            print(f"[ERROR] Request failed for {url} -> {e}, proxy: {proxy}")
             time.sleep(random.uniform(10, 20))
             continue
     print(f"[ERROR] Max retries exceeded for {url}")
@@ -93,6 +109,11 @@ def get_html(url):
 
 
 def fetch_privateproperty():
+    print("[SCRAPER] Starting PrivateProperty scraper...")
+    print(f"[SCRAPER] Requesting URL: {url}")
+    print(f"[SCRAPER] Found {len(cards)} property cards on PrivateProperty page {page}.")
+            print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+    print(f"[SCRAPER] Total listings scraped from PrivateProperty: {len(properties)}")
     source = "privateproperty"
     base_url = "https://www.privateproperty.co.za/commercial-sales/western-cape/garden-route/52?pt=6"
     properties = []
@@ -128,6 +149,11 @@ def fetch_privateproperty():
     return properties, True
 
 def fetch_pamgolding():
+    print("[SCRAPER] Starting Pam Golding scraper...")
+    print(f"[SCRAPER] Requesting URL: {url}")
+    print(f"[SCRAPER] Found {len(cards)} property cards on Pam Golding page {page}.")
+            print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+    print(f"[SCRAPER] Total listings scraped from Pam Golding: {len(properties)}")
     source = "pamgolding"
     base_url = "https://www.pamgolding.co.za/property-search/commercial-industrial-properties-for-sale-garden-route/510"
     properties = []
@@ -138,26 +164,30 @@ def fetch_pamgolding():
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select("article.pgp-property__item, div.pgp-property__item")
+    cards = soup.select("article.pgp-property__item")
         print(f"Found {len(cards)} property cards on Pam Golding page {page}.")
         if not cards:
             break
         for listing in cards:
-            full_title = listing.select_one(".pgp-description").text.strip() if listing.select_one(".pgp-description") else ""
-            if not full_title or not any(k in full_title.lower() for k in ["industrial", "warehouse", "commercial"]):
-                continue
-            title = full_title
-            location = "Garden Route"
-            if ' for sale in ' in full_title:
-                parts = full_title.rsplit(' for sale in ', 1)
-                title = parts[0].strip()
-                location = parts[1].strip()
-            price_str = listing.select_one(".pgp-price").text.strip() if listing.select_one(".pgp-price") else ""
+            # Extract link
+            link_tag = listing.select_one(".pgp-property-image a[href]")
+            href = link_tag["href"] if link_tag and link_tag.get("href") else ""
+            link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
+            # Extract title
+            title_tag = listing.select_one(".pgp-description")
+            title = title_tag.text.strip() if title_tag else ""
+            # Extract price
+            price_tag = listing.select_one(".pgp-price")
+            price_str = price_tag.text.strip() if price_tag else ""
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
+            # Extract location from title if possible
+            location = "Garden Route"
+            if ' for sale in ' in title:
+                parts = title.rsplit(' for sale in ', 1)
+                title = parts[0].strip()
+                location = parts[1].strip()
             agency = "Pam Golding"
-            href = listing.select_one("a").get("href") if listing.select_one("a") else ""
-            link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
             print(f"Scraped (Pam Golding): {title} | {location} | {price} | {agency}")
             prop = Property(title, price, location, agency, link, datetime.today().date())
             prop.source = source
@@ -170,6 +200,11 @@ def fetch_pamgolding():
         return [], False
 
 def fetch_sahometraders():
+    print("[SCRAPER] Starting SAHometraders scraper...")
+    print(f"[SCRAPER] Requesting URL: {url}")
+    print(f"[SCRAPER] Found {len(cards)} property cards on SAHometraders page {page}.")
+            print(f"[SCRAPER] Extracted listing: title='{title}', location='{location}', price={price}, agency='{agency}', link='{link}'")
+    print(f"[SCRAPER] Total listings scraped from SAHometraders: {len(properties)}")
     source = "sahometraders"
     base_url = "https://www.sahometraders.co.za/industrial-property-for-sale-in-garden-route-as1"
     properties = []
@@ -180,20 +215,27 @@ def fetch_sahometraders():
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select("div.p24_regularTile, div.js_resultTile")
+    cards = soup.select("div.p24_regularTile")
         print(f"Found {len(cards)} property cards on SAHometraders page {page}.")
         if not cards:
             break
         for listing in cards:
+            # Extract link
             link_tag = listing.select_one("a[href]")
-            href = link_tag.get("href") if link_tag else ""
-            link = "https://www.sahometraders.co.za" + href if href and href.startswith("/") else href or ""
+            href = link_tag["href"] if link_tag and link_tag.get("href") else ""
+            link = "https://www.sahometraders.co.za" + href if href.startswith("/") else href
+            # Extract price
             price_tag = listing.select_one(".p24_price")
-            price_str = price_tag.text if price_tag else ""
+            price_str = price_tag.text.strip() if price_tag else ""
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
-            title = listing.select_one(".p24_propertyTitle, .p24_title").text.strip() if listing.select_one(".p24_propertyTitle, .p24_title") else "No Title"
-            location = listing.select_one(".p24_location").text.strip() if listing.select_one(".p24_location") else ""
+            # Extract title
+            title_tag = listing.select_one(".p24_propertyTitle")
+            title = title_tag.text.strip() if title_tag else "No Title"
+            # Extract location
+            location_tag = listing.select_one(".p24_location")
+            location = location_tag.text.strip() if location_tag else ""
+            # Extract agency
             agency_tag = listing.select_one(".p24_branding img")
             agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "SAHometraders"
             print(f"Scraped (SAHometraders): {title} | {location} | {price} | {agency}")
@@ -205,10 +247,14 @@ def fetch_sahometraders():
     return properties, True
 
 def fetch_all_properties():
+    print("[SCRAPER] Starting fetch_all_properties...")
+    print(f"[SCRAPER] Calling {fetch_func.__name__}")
+            print(f"[SCRAPER] {fetch_func.__name__} returned {len(props)} properties, success={success}")
+    print(f"[SCRAPER] Total filtered properties: {len(all_properties)}")
     all_properties = []
     successful_sources = []
     fetch_funcs = [
-        fetch_property24,
+        # fetch_property24,  # Commented out to prevent blocking
         fetch_privateproperty,
         fetch_pamgolding,
         fetch_sahometraders
