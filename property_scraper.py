@@ -14,21 +14,24 @@ def fetch_property24():
     properties = []
     page = 1
     while True:
-        url = base_url + f"?page={page}" if page > 1 else base_url
+        url = base_url if page == 1 else f"{base_url}/p{page}"
         html = get_html(url)
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
+        # Try multiple selectors for robustness
         cards = soup.select("div.p24_regularTile")
+        if not cards:
+            cards = soup.select(".js_resultTile")
         print(f"Found {len(cards)} property cards on Property24 page {page}.")
         if not cards:
             break
         for listing in cards:
-            link_tag = listing.select_one("a.p24_content")
+            link_tag = listing.select_one("a[href]")
             link = link_tag["href"] if link_tag and link_tag.get("href") else ""
             if link.startswith("/"):
                 link = "https://www.property24.com" + link
-            title_tag = listing.select_one(".p24_title")
+            title_tag = listing.select_one(".p24_title, .p24_propertyTitle")
             title = title_tag.text.strip() if title_tag else ""
             location_tag = listing.select_one(".p24_location")
             location = location_tag.text.strip() if location_tag else ""
@@ -36,14 +39,13 @@ def fetch_property24():
             price_str = price_tag.text if price_tag else ""
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
-            agency_tag = listing.select_one(".p24_brandingLogoBoosted")
+            agency_tag = listing.select_one(".p24_brandingLogoBoosted, .p24_branding img")
             agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "Property24"
             if title and location and link and price:
                 prop = Property(title, price, location, agency, link, datetime.today().date())
                 prop.source = source
                 properties.append(prop)
         page += 1
-        # Random delay between pages
         time.sleep(random.uniform(2, 5))
     return properties, True
 import requests
@@ -96,24 +98,24 @@ def fetch_privateproperty():
     properties = []
     page = 1
     while True:
-        url = base_url + f"&page={page}" if page > 1 else base_url
+        url = base_url if page == 1 else f"{base_url}&page={page}"
         html = get_html(url)
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select("a.listing-result")
+        cards = soup.select("a.listing-result, div.js_resultTile")
         print(f"Found {len(cards)} property cards on PrivateProperty page {page}.")
         if not cards:
             break
         for listing in cards:
-            title_tag = listing.select_one(".listing-result__title")
+            title_tag = listing.select_one(".listing-result__title, .p24_title")
             title = title_tag.text.strip() if title_tag else ""
             if not title or not any(k in title.lower() for k in ["industrial", "warehouse", "commercial", "space"]):
                 continue
-            price_str = listing.select_one(".listing-result__price").text.strip() if listing.select_one(".listing-result__price") else ""
+            price_str = listing.select_one(".listing-result__price, .p24_price").text.strip() if listing.select_one(".listing-result__price, .p24_price") else ""
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
-            location = listing.select_one(".listing-result__desktop-suburb").text.strip() if listing.select_one(".listing-result__desktop-suburb") else "Garden Route"
+            location = listing.select_one(".listing-result__desktop-suburb, .p24_location").text.strip() if listing.select_one(".listing-result__desktop-suburb, .p24_location") else "Garden Route"
             agency = "Private Listing" if listing.select_one(".listing-result__listed-privately") else "Unknown Agency"
             href = listing.get("href")
             link = "https://www.privateproperty.co.za" + href if href and href.startswith("/") else href or ""
@@ -131,12 +133,12 @@ def fetch_pamgolding():
     properties = []
     page = 1
     while True:
-        url = base_url + f"?page={page}" if page > 1 else base_url
+        url = base_url if page == 1 else f"{base_url}?page={page}"
         html = get_html(url)
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select("article.pgp-property__item")
+        cards = soup.select("article.pgp-property__item, div.pgp-property__item")
         print(f"Found {len(cards)} property cards on Pam Golding page {page}.")
         if not cards:
             break
@@ -173,24 +175,24 @@ def fetch_sahometraders():
     properties = []
     page = 1
     while True:
-        url = base_url + f"?page={page}" if page > 1 else base_url
+        url = base_url if page == 1 else f"{base_url}?page={page}"
         html = get_html(url)
         if not html:
             break
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.select("div.p24_regularTile")
+        cards = soup.select("div.p24_regularTile, div.js_resultTile")
         print(f"Found {len(cards)} property cards on SAHometraders page {page}.")
         if not cards:
             break
         for listing in cards:
-            link_tag = listing.select_one("a")
+            link_tag = listing.select_one("a[href]")
             href = link_tag.get("href") if link_tag else ""
             link = "https://www.sahometraders.co.za" + href if href and href.startswith("/") else href or ""
             price_tag = listing.select_one(".p24_price")
             price_str = price_tag.text if price_tag else ""
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
-            title = listing.select_one(".p24_propertyTitle").text.strip() if listing.select_one(".p24_propertyTitle") else "No Title"
+            title = listing.select_one(".p24_propertyTitle, .p24_title").text.strip() if listing.select_one(".p24_propertyTitle, .p24_title") else "No Title"
             location = listing.select_one(".p24_location").text.strip() if listing.select_one(".p24_location") else ""
             agency_tag = listing.select_one(".p24_branding img")
             agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "SAHometraders"
