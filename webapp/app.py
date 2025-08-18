@@ -34,7 +34,6 @@ def get_listings():
 
 # New route to trigger live scraping and update listings.json
 
-import threading
 
 def scrape_and_update():
     print("[SCRAPER] Starting property scrape...")
@@ -62,14 +61,16 @@ def scrape_and_update():
     except Exception as e:
         print(f"[ERROR] Failed to save listings to DB: {e}")
 
+
 @app.route('/api/refresh', methods=['POST'])
 def refresh_listings():
     try:
         scrape_and_update()
-        return jsonify({"success": True, "message": "Scraping completed."})
+        listings = load_properties_from_db()
+        return jsonify({"success": True, "message": "Scraping completed.", "listings": listings})
     except Exception as e:
         print(f"[ERROR] Scraping failed: {e}")
-        return jsonify({"success": False, "message": f"Scraping failed: {e}"})
+        return jsonify({"success": False, "message": f"Scraping failed: {e}", "listings": []})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
