@@ -83,7 +83,11 @@ async function applyFilterSort(listings) {
         prop.agency.toLowerCase().includes(filterVal)
     );
     filtered = sortListings(filtered, sortKey);
-    renderListings(filtered);
+    if (filtered.length === 0) {
+        document.getElementById('listings').innerHTML = '<div class="no-listings">No properties found. Please try again later or refresh.</div>';
+    } else {
+        renderListings(filtered);
+    }
 }
 
 window.onload = async () => {
