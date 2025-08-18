@@ -44,6 +44,7 @@ import threading
 def scrape_and_update():
     print("[SCRAPER] Starting property scrape...")
     properties, sources = fetch_all_properties()
+    print(f"[DEBUG] Raw properties from scrapers: {properties}")
     print(f"[SCRAPER] Scrape complete. Sources: {sources}. Total properties: {len(properties)}")
     def property_to_dict(prop):
         return {
