@@ -2,3 +2,4 @@ kivy
 Flask
 requests
 beautifulsoup4
+gunicorn
