@@ -5,9 +5,12 @@ from contextlib import closing
 import os
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'listings.db')
 
+import os
+DB_PATH = '/tmp/listings.db'
+
 def init_db():
-    with closing(sqlite3.connect(DB_PATH)) as conn:
-        with conn:
+    try:
+        with closing(sqlite3.connect(DB_PATH)) as conn:
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS properties (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,8 +26,9 @@ def init_db():
                     missing_count INTEGER
                 )
             ''')
-
-def clear_properties_db():
+        print(f"[DB] Database initialized at {DB_PATH}")
+    except Exception as e:
+        print(f"[DB ERROR] Failed to initialize database: {e}")
     with closing(sqlite3.connect(DB_PATH)) as conn:
         with conn:
             conn.execute('DELETE FROM properties')
