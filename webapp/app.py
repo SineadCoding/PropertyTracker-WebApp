@@ -58,17 +58,23 @@ def scrape_and_update():
             "status": getattr(prop, "status", "active"),
             "missing_count": getattr(prop, "missing_count", 0)
         }
-    listings = [property_to_dict(p) for p in properties]
-    print(f"[DEBUG] Listings to be saved: {listings}")
-    with open(LISTINGS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(listings, f, ensure_ascii=False, indent=2)
-    print(f"[SCRAPER] Listings file updated with {len(listings)} properties.")
+    try:
+        listings = [property_to_dict(p) for p in properties]
+        print(f"[DEBUG] Listings to be saved: {listings}")
+        with open(LISTINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(listings, f, ensure_ascii=False, indent=2)
+        print(f"[SCRAPER] Listings file updated with {len(listings)} properties.")
+    except Exception as e:
+        print(f"[ERROR] Failed to save listings: {e}")
 
 @app.route('/api/refresh', methods=['POST'])
 def refresh_listings():
-    thread = threading.Thread(target=scrape_and_update)
-    thread.start()
-    return jsonify({"success": True, "message": "Scraping started in background."})
+    try:
+        scrape_and_update()
+        return jsonify({"success": True, "message": "Scraping completed."})
+    except Exception as e:
+        print(f"[ERROR] Scraping failed: {e}")
+        return jsonify({"success": False, "message": f"Scraping failed: {e}"})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
