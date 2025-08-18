@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from flask import Flask, render_template, jsonify, request
 from property_scraper import fetch_all_properties
 from utils import fetch_gbp_exchange_rate
-from db_utils import init_db, save_properties_to_db, load_properties_from_db
+from db_utils import init_db, save_property_to_db, load_properties_from_db, clear_properties_db
 
 
 app = Flask(__name__)
@@ -53,11 +53,11 @@ def scrape_and_update():
             "status": getattr(prop, "status", "active"),
             "missing_count": getattr(prop, "missing_count", 0)
         }
-    listings = [property_to_dict(p) for p in properties]
-    print(f"[DEBUG] Listings to be saved: {listings}")
     try:
-        save_properties_to_db(listings)
-        print(f"[SCRAPER] Listings database updated with {len(listings)} properties.")
+        clear_properties_db()
+        for p in properties:
+            save_property_to_db(property_to_dict(p))
+        print(f"[SCRAPER] Listings database updated with {len(properties)} properties.")
     except Exception as e:
         print(f"[ERROR] Failed to save listings to DB: {e}")
 

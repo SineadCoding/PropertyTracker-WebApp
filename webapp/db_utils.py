@@ -24,26 +24,29 @@ def init_db():
                 )
             ''')
 
-def save_properties_to_db(properties):
+def clear_properties_db():
     with closing(sqlite3.connect(DB_PATH)) as conn:
         with conn:
             conn.execute('DELETE FROM properties')
-            for prop in properties:
-                conn.execute('''
-                    INSERT INTO properties (title, location, price, agency, link, date, source, sold, status, missing_count)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    prop.get('title', ''),
-                    prop.get('location', ''),
-                    prop.get('price', 0),
-                    prop.get('agency', ''),
-                    prop.get('link', ''),
-                    prop.get('date', ''),
-                    prop.get('source', 'unknown'),
-                    int(prop.get('sold', False)),
-                    prop.get('status', 'active'),
-                    prop.get('missing_count', 0)
-                ))
+
+def save_property_to_db(prop):
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        with conn:
+            conn.execute('''
+                INSERT INTO properties (title, location, price, agency, link, date, source, sold, status, missing_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                prop.get('title', ''),
+                prop.get('location', ''),
+                prop.get('price', 0),
+                prop.get('agency', ''),
+                prop.get('link', ''),
+                prop.get('date', ''),
+                prop.get('source', 'unknown'),
+                int(prop.get('sold', False)),
+                prop.get('status', 'active'),
+                prop.get('missing_count', 0)
+            ))
 
 def load_properties_from_db():
     with closing(sqlite3.connect(DB_PATH)) as conn:
