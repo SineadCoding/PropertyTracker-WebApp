@@ -1,5 +1,2 @@
-kivy
-Flask
-requests
-beautifulsoup4
-gunicorn
+# Backup of requirements.txt
+# ...original code will be copied here...
