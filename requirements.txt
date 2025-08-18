@@ -1,2 +1,3 @@
-# Backup of requirements.txt
-# ...original code will be copied here...
+Flask
+requests
+beautifulsoup4
