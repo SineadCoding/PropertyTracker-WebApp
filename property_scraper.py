@@ -255,18 +255,11 @@ def fetch_all_properties():
                     successful_sources.append(props[0].source)
                 elif fetch_func.__name__.startswith("fetch_"):
                     successful_sources.append(fetch_func.__name__[6:])
-                filtered = []
                 for p in props:
-                    title_str = str(getattr(p, 'title', '')).lower()
-                    price_str = str(getattr(p, 'price', ''))
-                    if 'rent' in title_str or 'rental' in title_str:
-                        continue
+                    # Only filter out listings with no title, location, or link
                     if not getattr(p, 'title', None) or not getattr(p, 'location', None) or not getattr(p, 'link', None):
                         continue
-                    if 'propertytracker-webapp' in str(getattr(p, 'link', '')):
-                        continue
-                    filtered.append(p)
-                all_properties.extend(filtered)
+                    all_properties.append(p)
         except Exception as e:
             print(f"[ERROR] {fetch_func.__name__} failed: {e}")
     print(f"[SCRAPER] Total filtered properties: {len(all_properties)}")

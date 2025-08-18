@@ -59,6 +59,7 @@ def scrape_and_update():
             "missing_count": getattr(prop, "missing_count", 0)
         }
     listings = [property_to_dict(p) for p in properties]
+    print(f"[DEBUG] Listings to be saved: {listings}")
     with open(LISTINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(listings, f, ensure_ascii=False, indent=2)
     print(f"[SCRAPER] Listings file updated with {len(listings)} properties.")
