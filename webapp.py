@@ -24,7 +24,7 @@ app = Flask(__name__)
 
 # Import existing modules (keeping original files unchanged)
 try:
-    from property_scraper import fetch_all_properties
+    from property_scraper import PropertyScraper
     from models import Property
     from utils import get_exchange_rate, format_price_gbp
 except ImportError as e:
@@ -43,7 +43,14 @@ class WebPropertyTracker:
         self.current_sort = "price_desc"
         self.price_filter_min = 0
         self.price_filter_max = 1000000
+        self.scraper = None
         
+        # Initialize scraper if available
+        try:
+            self.scraper = PropertyScraper()
+        except:
+            logger.warning("PropertyScraper not available, using fallback")
+            
         # Load initial data
         self.load_previous_properties()
         self.load_blocked_sources()
@@ -103,23 +110,28 @@ class WebPropertyTracker:
             self.exchange_rate = 0.85  # Default fallback
     
     def scrape_properties(self):
-        """Scrape properties using fetch_all_properties"""
+        """Scrape properties using the property scraper"""
         try:
-            new_properties, _ = fetch_all_properties()
-            # Filter out blocked sources
-            filtered_properties = [
-                prop for prop in new_properties 
-                if prop.source not in self.blocked_sources
-            ]
-            
-            # Merge with previous properties
-            self.properties = self.merge_properties(filtered_properties, self.previous_properties)
-            
-            # Save properties
-            self.save_properties()
-            
-            logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
-            return len(filtered_properties)
+            if self.scraper:
+                new_properties = self.scraper.scrape_all_sources()
+                # Filter out blocked sources
+                filtered_properties = [
+                    prop for prop in new_properties 
+                    if prop.source not in self.blocked_sources
+                ]
+                
+                # Merge with previous properties
+                self.properties = self.merge_properties(filtered_properties, self.previous_properties)
+                
+                # Save properties
+                self.save_properties()
+                
+                logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
+                return len(filtered_properties)
+            else:
+                # Load from existing file if scraper not available
+                self.properties = self.previous_properties[:]
+                return len(self.properties)
         except Exception as e:
             logger.error(f"Error scraping properties: {e}")
             self.properties = self.previous_properties[:]
@@ -271,7 +283,32 @@ tracker = WebPropertyTracker()
 @app.route('/')
 def index():
     """Main page"""
-    return render_template('index.html')
+    # Load properties from JSON
+    listings = []
+    if os.path.exists('listings.json'):
+        with open('listings.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # Get exchange rate
+            try:
+                from utils import fetch_gbp_exchange_rate
+                exchange_rate = fetch_gbp_exchange_rate() or 0.042
+            except Exception:
+                exchange_rate = 0.042
+            for prop in data:
+                price_rand = prop.get('price')
+                try:
+                    price_pound = float(price_rand) * exchange_rate
+                except Exception:
+                    price_pound = ''
+                listings.append({
+                    'title': prop.get('title', ''),
+                    'location': prop.get('location', ''),
+                    'price_rand': price_rand,
+                    'price_pound': f"{price_pound:,.0f}" if price_pound else '',
+                    'agency': prop.get('agency', ''),
+                    'url': prop.get('link', '')
+                })
+    return render_template('index.html', listings=listings)
 
 @app.route('/api/properties')
 def get_properties():
