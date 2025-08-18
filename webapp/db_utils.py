@@ -3,10 +3,7 @@ import sqlite3
 from contextlib import closing
 
 import os
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'listings.db')
-
-import os
-DB_PATH = '/tmp/listings.db'
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'listings.db')
 
 def init_db():
     try:
