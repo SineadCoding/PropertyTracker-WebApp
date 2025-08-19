@@ -529,9 +529,15 @@ def get_blocked_sources():
         })
 
 if __name__ == '__main__':
-    # Load initial data
-    # tracker.scrape_properties()
-    
+
+# Route for sold listings page
+@app.route('/sold')
+def sold_listings():
+    """Render a page showing only sold listings"""
+    sold_props = [tracker.property_to_dict(p) for p in tracker.get_filtered_properties() if getattr(p, 'status', '') == 'sold']
+    return render_template('sold.html', properties=sold_props)
+
+if __name__ == '__main__':
     # Run the app
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

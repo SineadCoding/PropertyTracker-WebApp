@@ -192,11 +192,14 @@
                     <option value="location">Location</option>
                 </select>
             </label>
-            <button class="refresh-btn" onclick="refreshExchangeRate()">Refresh Exchange Rate</button>
+        <button class="refresh-btn" onclick="refreshListings()">Refresh Listings</button>
             <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
             <button class="show-gbp-btn" onclick="toggleSold()" id="soldToggle">Show Sold Properties</button>
         </div>
         <div class="stats" id="stats"></div>
+        <div style="margin-bottom:18px;text-align:right">
+            <a href="/sold" style="font-weight:600;color:#fc5c7d;text-decoration:underline">View Sold Listings</a>
+        </div>
         <div class="cards" id="propertyCards">
             <!-- Property cards will be rendered here by JS -->
         </div>
@@ -224,17 +227,30 @@
             if (listing.status === 'sold') statusLabel = '<span class="card-status" style="background:#fc5c7d">SOLD</span>';
             else if (listing.status === 'unverified') statusLabel = '<span class="card-status" style="background:#ffd700;color:#222">UNVERIFIED</span>';
             else if (blocked) statusLabel = '<span class="card-status" style="background:#888">BLOCKED</span>';
+
+            // Format price with thousands separator
+            function formatPrice(val) {
+                if (!val) return '';
+                return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            let priceZAR = formatPrice(listing.price);
+            let priceGBP = formatPrice(listing.price_gbp || listing.price_pound || '');
+
+            // Always show a clickable link if available
+            let linkUrl = listing.url || listing.link || '#';
+            let linkHtml = linkUrl !== '#' ? `<a href="${linkUrl}" target="_blank">View Listing</a>` : '<span style="color:#ccc">No Link</span>';
+
             container.innerHTML += `
                 <div class="card">
                     ${statusLabel}
                     <div class="card-title">${listing.title || listing.address}</div>
                     <div class="card-location"><i class="fa fa-map-marker-alt"></i> ${listing.location || listing.address}</div>
                     <div class="card-price">
-                        <span class="currency rand">R ${listing.price}</span>
-                        <span class="currency pound">£ ${listing.price_gbp || listing.price_pound || ''}</span>
+                        <span class="currency rand">R ${priceZAR}</span>
+                        <span class="currency pound">£ ${priceGBP}</span>
                     </div>
                     <div class="card-agency">Agency: ${listing.agency || listing.source || ''}</div>
-                    <div class="card-link"><a href="${listing.url || listing.link}" target="_blank">View Listing</a></div>
+                    <div class="card-link">${linkHtml}</div>
                 </div>
             `;
         });
@@ -252,8 +268,11 @@
                 `;
             });
     }
-    function refreshExchangeRate() {
-        fetch('/api/refresh', {method:'POST'})
+    // Remove exchange rate refresh button and function
+
+    // Refresh listings by scraping and updating
+    function refreshListings() {
+        fetch('/api/scrape', {method:'POST'})
             .then(() => { fetchProperties(); });
     }
     function clearFilters() {
@@ -279,7 +298,10 @@
             });
     }
     // Initial load
-    fetchBlockedSources();
+    // On page load, update exchange rate and fetch listings
+    fetch('/api/refresh', {method:'POST'}).then(() => {
+        fetchBlockedSources();
+    });
     // Responsive improvements
     window.addEventListener('resize', () => {
         document.querySelector('.main-container').style.maxWidth = window.innerWidth < 600 ? '100%' : '1100px';
