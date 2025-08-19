@@ -3,9 +3,8 @@
 PropertyTracker Web Application
 Complete web version of the PropertyTracker Android app with all functionality
 """
-
-from flask import Flask, render_template, jsonify, request
-import json
+    # Only run the app, do not scrape on startup
+    
 import os
 import requests
 from datetime import datetime
@@ -32,12 +31,19 @@ LISTINGS_FILE = "listings.json"
 UNVERIFIED_LIMIT = 3
 
 def property_to_dict(prop):
+    # GBP conversion
+    try:
+        gbp_rate = fetch_gbp_exchange_rate() or 0.042
+        price_gbp = float(getattr(prop, "price", 0)) * gbp_rate
+    except Exception:
+        price_gbp = ""
     return {
         "title": getattr(prop, "title", ""),
-        "location": prop.location,
-        "price": prop.price,
-        "agency": prop.agency,
-        "link": prop.link,
+        "location": getattr(prop, "location", ""),
+        "price": getattr(prop, "price", ""),
+        "price_gbp": f"{price_gbp:,.0f}" if price_gbp else "",
+        "agency": getattr(prop, "agency", ""),
+        "url": getattr(prop, "link", ""),
         "date": str(getattr(prop, "date", "")),
         "source": getattr(prop, "source", "unknown"),
         "sold": getattr(prop, "sold", False),
