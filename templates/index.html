@@ -13,10 +13,10 @@
             margin: 0;
         }
         .main-container {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 40px auto;
             background: #fff;
-            border-radius: 18px;
+            border-radius: 32px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.10);
             padding: 32px 32px 24px 32px;
         }
@@ -24,55 +24,71 @@
             display: flex;
             align-items: center;
             gap: 18px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         .header-logo {
-            font-size: 2.5em;
+            font-size: 2.8em;
         }
         .header-title {
-            font-size: 2.2em;
-            font-weight: 600;
-            color: #3a3a3a;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #222;
         }
         .header-desc {
-            color: #4a4a4a;
-            font-size: 1.1em;
-            margin-bottom: 24px;
+            color: #444;
+            font-size: 1.15em;
+            margin-bottom: 28px;
         }
         .filters {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 14px;
             margin-bottom: 18px;
         }
         .filters input, .filters select {
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 10px 14px;
+            border-radius: 8px;
             border: 1px solid #d0d0d0;
             font-size: 1em;
         }
         .filters button {
-            padding: 10px 18px;
+            padding: 10px 22px;
             border-radius: 8px;
             border: none;
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-            color: #fff;
             font-weight: 600;
             font-size: 1em;
             cursor: pointer;
             transition: background 0.2s;
         }
-        .filters button:hover {
+        .filters .refresh-btn {
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+            color: #fff;
+        }
+        .filters .refresh-btn:hover {
             background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+        }
+        .filters .show-gbp-btn {
+            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+            color: #fff;
+        }
+        .filters .show-gbp-btn:hover {
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+        }
+        .filters .clear-btn {
+            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+            color: #fff;
+        }
+        .filters .clear-btn:hover {
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
         }
         .stats {
             background: #eaf6ff;
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 18px;
             margin-bottom: 18px;
             text-align: center;
-            font-size: 1.2em;
-            color: #2d2d2d;
+            font-size: 1.25em;
+            color: #222;
         }
         .cards {
             display: grid;
@@ -81,7 +97,7 @@
         }
         .card {
             background: linear-gradient(135deg, #6dd5fa 0%, #8e54e9 100%);
-            border-radius: 14px;
+            border-radius: 18px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             padding: 24px 18px 18px 18px;
             color: #fff;
@@ -136,7 +152,7 @@
         </div>
         <div class="header-desc">Find your perfect property from the latest listings</div>
         <form class="filters" method="get" action="/">
-            <button type="submit"><i class="fa fa-sync-alt"></i> Refresh Listings</button>
+            <button type="submit" class="refresh-btn"><i class="fa fa-sync-alt"></i> Refresh Listings</button>
             <input type="text" name="search" placeholder="Search properties...">
             <input type="number" name="min_price" placeholder="Min Price (R)">
             <input type="number" name="max_price" placeholder="Max Price (R)">
@@ -144,8 +160,8 @@
                 <option value="active">Active Only</option>
                 <option value="all">All</option>
             </select>
-            <button type="button">Show GBP</button>
-            <button type="reset">Clear Filters</button>
+            <button type="button" class="show-gbp-btn">Show GBP</button>
+            <button type="reset" class="clear-btn">Clear Filters</button>
             <select name="sort">
                 <option value="none">No Sort</option>
                 <option value="price_asc">Price Asc</option>

@@ -298,12 +298,8 @@ def index():
             for prop in data:
                 title = prop.get('title', '').lower()
                 location = prop.get('location', '').lower()
-                # Only include industrial properties for sale in Garden Route
-                if (
-                    'industrial' in title and
-                    'garden route' in location and
-                    ('for sale' in title or 'for sale' in location)
-                ):
+                # Loosen filter: show all industrial properties in Garden Route
+                if 'industrial' in title and 'garden route' in location:
                     price_rand = prop.get('price')
                     try:
                         price_pound = float(price_rand) * exchange_rate
