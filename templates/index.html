@@ -237,7 +237,7 @@
             let priceGBP = formatPrice(listing.price_gbp || listing.price_pound || '');
 
             // Always show a clickable link if available
-            let linkUrl = listing.url || listing.link || '#';
+            let linkUrl = listing.link || listing.url || '#';
             let linkHtml = linkUrl !== '#' ? `<a href="${linkUrl}" target="_blank">View Listing</a>` : '<span style="color:#ccc">No Link</span>';
 
             container.innerHTML += `

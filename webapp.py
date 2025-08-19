@@ -37,13 +37,16 @@ def property_to_dict(prop):
         price_gbp = float(getattr(prop, "price", 0)) * gbp_rate
     except Exception:
         price_gbp = ""
+    link_val = getattr(prop, "link", "")
+    url_val = getattr(prop, "url", link_val)
     return {
         "title": getattr(prop, "title", ""),
         "location": getattr(prop, "location", ""),
         "price": getattr(prop, "price", ""),
         "price_gbp": f"{price_gbp:,.0f}" if price_gbp else "",
         "agency": getattr(prop, "agency", ""),
-        "url": getattr(prop, "link", ""),
+        "link": link_val,
+        "url": url_val,
         "status": getattr(prop, "status", "active"),
         "source": getattr(prop, "source", "unknown"),
         "sold": getattr(prop, "sold", False)
