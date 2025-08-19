@@ -144,45 +144,45 @@
         }
     </style>
 </head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Listings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
+        .container { max-width: 900px; margin: 40px auto; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; padding: 24px; display: flex; flex-direction: column; }
+        .card-title { font-size: 1.3em; font-weight: bold; margin-bottom: 8px; }
+        .card-location { color: #555; margin-bottom: 8px; }
+        .card-price { font-size: 1.1em; margin-bottom: 8px; }
+        .card-agency { color: #888; margin-bottom: 8px; }
+        .card-link { margin-top: 8px; }
+        .currency { font-weight: bold; }
+        .rand { color: #007bff; }
+        .pound { color: #28a745; margin-left: 12px; }
+    </style>
+</head>
 <body>
-    <div class="main-container">
-        <div class="header">
-            <span class="header-logo"><i class="fa fa-home"></i></span>
-            <span class="header-title">PropertyTracker</span>
+    <div class="container">
+        <h1>Property Listings</h1>
+        {% for listing in listings %}
+        <div class="card">
+            <div class="card-title">{{ listing.title }}</div>
+            <div class="card-location"><i class="fa fa-map-marker-alt"></i> {{ listing.location }}</div>
+            <div class="card-price">
+                <span class="currency rand">R {{ listing.price_rand }}</span>
+                <span class="currency pound">£ {{ listing.price_pound }}</span>
+            </div>
+            <div class="card-agency">Agency: {{ listing.agency }}</div>
+            <div class="card-link"><a href="{{ listing.url }}" target="_blank">View Listing</a></div>
         </div>
-        <div class="header-desc">Find your perfect property from the latest listings</div>
-        <form class="filters" method="get" action="/">
-            <button type="submit" class="refresh-btn"><i class="fa fa-sync-alt"></i> Refresh Listings</button>
-            <input type="text" name="search" placeholder="Search properties...">
-            <input type="number" name="min_price" placeholder="Min Price (R)">
-            <input type="number" name="max_price" placeholder="Max Price (R)">
-            <select name="status">
-                <option value="active">Active Only</option>
-                <option value="all">All</option>
-            </select>
-            <button type="button" class="show-gbp-btn">Show GBP</button>
-            <button type="reset" class="clear-btn">Clear Filters</button>
-            <select name="sort">
-                <option value="none">No Sort</option>
-                <option value="price_asc">Price Asc</option>
-                <option value="price_desc">Price Desc</option>
-            </select>
-        </form>
-        <div class="stats">
-            <strong>{{ listings|length }} Properties</strong><br>
-            Exchange Rate: 1 ZAR = £{{ exchange_rate }} &bull; Updated properties available for viewing
-        </div>
-        <div class="cards">
-            {% for listing in listings %}
-            <div class="card">
-                <div class="card-title">{{ listing.title }}</div>
-                <div class="card-price">R {{ listing.price_rand }} {% if show_gbp %} | £{{ listing.price_pound }}{% endif %}</div>
-                <div class="card-status">ACTIVE</div>
-                <div class="card-details">
-                    <span><i class="fa fa-bed"></i> N/A Bedrooms</span>
-                    <span><i class="fa fa-bath"></i> N/A Bathrooms</span>
-                    <span><i class="fa fa-car"></i> N/A Parking</span>
-                    <span><i class="fa fa-ruler-combined"></i> N/A m²</span>
+        {% endfor %}
+    </div>
+</body>
+</html>
                     <span><i class="fa fa-building"></i> {{ listing.agency }}</span>
                 </div>
                 <div class="card-link"><a href="{{ listing.url }}" target="_blank">View Listing</a></div>

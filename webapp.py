@@ -283,37 +283,32 @@ tracker = WebPropertyTracker()
 @app.route('/')
 def index():
     """Main page"""
-    # Load properties from JSON and filter for industrial properties for sale in Garden Route
+    # Load properties from JSON
     listings = []
-    exchange_rate = 0.042
-    show_gbp = True
     if os.path.exists('listings.json'):
         with open('listings.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
+            # Get exchange rate
             try:
                 from utils import fetch_gbp_exchange_rate
                 exchange_rate = fetch_gbp_exchange_rate() or 0.042
             except Exception:
                 exchange_rate = 0.042
             for prop in data:
-                title = prop.get('title', '').lower()
-                location = prop.get('location', '').lower()
-                # Loosen filter: show all industrial properties in Garden Route
-                if 'industrial' in title and 'garden route' in location:
-                    price_rand = prop.get('price')
-                    try:
-                        price_pound = float(price_rand) * exchange_rate
-                    except Exception:
-                        price_pound = ''
-                    listings.append({
-                        'title': prop.get('title', ''),
-                        'location': prop.get('location', ''),
-                        'price_rand': price_rand,
-                        'price_pound': f"{price_pound:,.0f}" if price_pound else '',
-                        'agency': prop.get('agency', ''),
-                        'url': prop.get('link', '')
-                    })
-    return render_template('index.html', listings=listings, exchange_rate=exchange_rate, show_gbp=show_gbp)
+                price_rand = prop.get('price')
+                try:
+                    price_pound = float(price_rand) * exchange_rate
+                except Exception:
+                    price_pound = ''
+                listings.append({
+                    'title': prop.get('title', ''),
+                    'location': prop.get('location', ''),
+                    'price_rand': price_rand,
+                    'price_pound': f"{price_pound:,.0f}" if price_pound else '',
+                    'agency': prop.get('agency', ''),
+                    'url': prop.get('link', '')
+                })
+    return render_template('index.html', listings=listings)
 
 @app.route('/api/properties')
 def get_properties():
