@@ -530,6 +530,7 @@ def get_blocked_sources():
 
 if __name__ == '__main__':
 
+
 # Route for sold listings page
 @app.route('/sold')
 def sold_listings():
