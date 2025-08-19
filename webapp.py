@@ -127,7 +127,7 @@ def merge_properties(new_props, old_props, successful_sources):
 
 class WebPropertyTracker:
     """Main web application class that replicates Android app functionality"""
-    
+
     def __init__(self):
         self.properties = []
         self.previous_properties = []
@@ -138,13 +138,11 @@ class WebPropertyTracker:
         self.price_filter_min = 0
         self.price_filter_max = 1000000
         self.scraper = None
-        
-    # No PropertyScraper, use fetch_all_properties for scraping
-            
-        # Load initial data
         self.load_previous_properties()
+        self.properties = self.previous_properties[:]
         self.load_blocked_sources()
         self.update_exchange_rate()
+        
     
     def load_previous_properties(self):
         """Load previously saved properties"""
