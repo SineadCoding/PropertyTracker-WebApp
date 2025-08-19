@@ -44,11 +44,9 @@ def property_to_dict(prop):
         "price_gbp": f"{price_gbp:,.0f}" if price_gbp else "",
         "agency": getattr(prop, "agency", ""),
         "url": getattr(prop, "link", ""),
-        "date": str(getattr(prop, "date", "")),
-        "source": getattr(prop, "source", "unknown"),
-        "sold": getattr(prop, "sold", False),
         "status": getattr(prop, "status", "active"),
-        "missing_count": getattr(prop, "missing_count", 0)
+        "source": getattr(prop, "source", "unknown"),
+        "sold": getattr(prop, "sold", False)
     }
 
 def dict_to_property(d):
@@ -264,7 +262,6 @@ class WebPropertyTracker:
     def get_filtered_properties(self) -> List:
         """Get properties filtered by current settings"""
         filtered = self.properties[:]
-        
         # Filter by status
         if self.current_filter == "active":
             filtered = [p for p in filtered if p.status == "active"]
@@ -272,40 +269,35 @@ class WebPropertyTracker:
             filtered = [p for p in filtered if p.status == "sold"]
         elif self.current_filter == "unverified":
             filtered = [p for p in filtered if p.status == "unverified"]
-        
         # Filter by price range (convert to EUR if needed)
         price_filtered = []
         for prop in filtered:
             try:
                 price = float(prop.price) if prop.price else 0
-                if prop.currency == "GBP":
+                if hasattr(prop, 'currency') and prop.currency == "GBP":
                     price = price / self.exchange_rate  # Convert GBP to EUR for comparison
-                
                 if self.price_filter_min <= price <= self.price_filter_max:
                     price_filtered.append(prop)
             except (ValueError, TypeError):
                 price_filtered.append(prop)  # Include if price parsing fails
-        
         filtered = price_filtered
-        
         # Sort properties
         if self.current_sort == "price_asc":
             filtered.sort(key=lambda p: float(p.price or 0))
         elif self.current_sort == "price_desc":
             filtered.sort(key=lambda p: float(p.price or 0), reverse=True)
         elif self.current_sort == "bedrooms_asc":
-            filtered.sort(key=lambda p: int(p.bedrooms or 0))
+            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0)))
         elif self.current_sort == "bedrooms_desc":
-            filtered.sort(key=lambda p: int(p.bedrooms or 0), reverse=True)
+            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0)), reverse=True)
         elif self.current_sort == "area_asc":
-            filtered.sort(key=lambda p: float(p.area or 0))
+            filtered.sort(key=lambda p: float(getattr(p, 'area', 0)))
         elif self.current_sort == "area_desc":
-            filtered.sort(key=lambda p: float(p.area or 0), reverse=True)
+            filtered.sort(key=lambda p: float(getattr(p, 'area', 0)), reverse=True)
         elif self.current_sort == "date_asc":
-            filtered.sort(key=lambda p: p.first_seen or "")
+            filtered.sort(key=lambda p: getattr(p, 'first_seen', ""))
         elif self.current_sort == "date_desc":
-            filtered.sort(key=lambda p: p.first_seen or "", reverse=True)
-        
+            filtered.sort(key=lambda p: getattr(p, 'first_seen', ""), reverse=True)
         return filtered
     
     def get_property_stats(self) -> Dict[str, int]:
@@ -356,35 +348,9 @@ tracker = WebPropertyTracker()
 @app.route('/')
 def index():
     """Main page"""
-    # Load properties from JSON
-    listings = []
-    if os.path.exists('listings.json'):
-        with open('listings.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            # Get exchange rate
-            try:
-                from utils import fetch_gbp_exchange_rate
-                exchange_rate = fetch_gbp_exchange_rate() or 0.042
-            except Exception:
-                exchange_rate = 0.042
-            for prop in data:
-                price_rand = prop.get('price')
-                try:
-                    price_pound = float(price_rand) * exchange_rate
-                except Exception:
-                    price_pound = ''
-                listings.append({
-                    'title': prop.get('title', ''),
-                    'location': prop.get('location', ''),
-                    'price_rand': price_rand,
-                    'price_pound': f"{price_pound:,.0f}" if price_pound else '',
-                    'agency': prop.get('agency', ''),
-                    'url': prop.get('link', '')
-                })
-    return render_template('index.html', listings=listings)
-
-@app.route('/api/properties')
-def get_properties():
+    # Just render the template, JS will fetch properties
+    return render_template('index.html')
+                    # Only run the app, do not scrape on startup
     """Get filtered properties"""
     try:
         # Update filters from request
