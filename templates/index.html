@@ -1,39 +1,178 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Property Listings</title>
+    <title>PropertyTracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
-        .container { max-width: 900px; margin: 40px auto; }
-        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; padding: 24px; display: flex; flex-direction: column; }
-        .card-title { font-size: 1.3em; font-weight: bold; margin-bottom: 8px; }
-        .card-location { color: #555; margin-bottom: 8px; }
-        .card-price { font-size: 1.1em; margin-bottom: 8px; }
-        .card-agency { color: #888; margin-bottom: 8px; }
-        .card-link { margin-top: 8px; }
-        .currency { font-weight: bold; }
-        .rand { color: #007bff; }
-        .pound { color: #28a745; margin-left: 12px; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #6dd5fa 0%, #8e54e9 100%);
+            margin: 0;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            padding: 32px 32px 24px 32px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 12px;
+        }
+        .header-logo {
+            font-size: 2.5em;
+        }
+        .header-title {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: #3a3a3a;
+        }
+        .header-desc {
+            color: #4a4a4a;
+            font-size: 1.1em;
+            margin-bottom: 24px;
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .filters input, .filters select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #d0d0d0;
+            font-size: 1em;
+        }
+        .filters button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .filters button:hover {
+            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+        }
+        .stats {
+            background: #eaf6ff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 18px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #2d2d2d;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: linear-gradient(135deg, #6dd5fa 0%, #8e54e9 100%);
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 24px 18px 18px 18px;
+            color: #fff;
+            position: relative;
+        }
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .card-price {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .card-status {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            background: #1ed760;
+            color: #fff;
+            font-size: 0.95em;
+            font-weight: 600;
+            border-radius: 6px;
+            padding: 4px 12px;
+        }
+        .card-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.98em;
+            margin-bottom: 8px;
+        }
+        .card-details i {
+            margin-right: 4px;
+        }
+        .card-link {
+            margin-top: 10px;
+        }
+        .card-link a {
+            color: #fff;
+            text-decoration: underline;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Property Listings</h1>
-        {% for listing in listings %}
-        <div class="card">
-            <div class="card-title">{{ listing.title }}</div>
-            <div class="card-location"><i class="fa fa-map-marker-alt"></i> {{ listing.location }}</div>
-            <div class="card-price">
-                <span class="currency rand">R {{ listing.price_rand }}</span>
-                <span class="currency pound">£ {{ listing.price_pound }}</span>
-            </div>
-            <div class="card-agency">Agency: {{ listing.agency }}</div>
-            <div class="card-link"><a href="{{ listing.url }}" target="_blank">View Listing</a></div>
+    <div class="main-container">
+        <div class="header">
+            <span class="header-logo"><i class="fa fa-home"></i></span>
+            <span class="header-title">PropertyTracker</span>
         </div>
-        {% endfor %}
+        <div class="header-desc">Find your perfect property from the latest listings</div>
+        <form class="filters" method="get" action="/">
+            <button type="submit"><i class="fa fa-sync-alt"></i> Refresh Listings</button>
+            <input type="text" name="search" placeholder="Search properties...">
+            <input type="number" name="min_price" placeholder="Min Price (R)">
+            <input type="number" name="max_price" placeholder="Max Price (R)">
+            <select name="status">
+                <option value="active">Active Only</option>
+                <option value="all">All</option>
+            </select>
+            <button type="button">Show GBP</button>
+            <button type="reset">Clear Filters</button>
+            <select name="sort">
+                <option value="none">No Sort</option>
+                <option value="price_asc">Price Asc</option>
+                <option value="price_desc">Price Desc</option>
+            </select>
+        </form>
+        <div class="stats">
+            <strong>{{ listings|length }} Properties</strong><br>
+            Exchange Rate: 1 ZAR = £{{ exchange_rate }} &bull; Updated properties available for viewing
+        </div>
+        <div class="cards">
+            {% for listing in listings %}
+            <div class="card">
+                <div class="card-title">{{ listing.title }}</div>
+                <div class="card-price">R {{ listing.price_rand }} {% if show_gbp %} | £{{ listing.price_pound }}{% endif %}</div>
+                <div class="card-status">ACTIVE</div>
+                <div class="card-details">
+                    <span><i class="fa fa-bed"></i> N/A Bedrooms</span>
+                    <span><i class="fa fa-bath"></i> N/A Bathrooms</span>
+                    <span><i class="fa fa-car"></i> N/A Parking</span>
+                    <span><i class="fa fa-ruler-combined"></i> N/A m²</span>
+                    <span><i class="fa fa-building"></i> {{ listing.agency }}</span>
+                </div>
+                <div class="card-link"><a href="{{ listing.url }}" target="_blank">View Listing</a></div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </body>
 </html>
