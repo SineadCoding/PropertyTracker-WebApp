@@ -22,14 +22,104 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Import existing modules (keeping original files unchanged)
-try:
-    from property_scraper import PropertyScraper
-    from models import Property
-    from utils import get_exchange_rate, format_price_gbp
-except ImportError as e:
-    logger.error(f"Import error: {e}")
-    # Fallback implementations will be created below
+
+# Import models and scraping logic
+from models import Property
+from property_scraper import fetch_all_properties
+from utils import fetch_gbp_exchange_rate
+
+LISTINGS_FILE = "listings.json"
+UNVERIFIED_LIMIT = 3
+
+def property_to_dict(prop):
+    return {
+        "title": getattr(prop, "title", ""),
+        "location": prop.location,
+        "price": prop.price,
+        "agency": prop.agency,
+        "link": prop.link,
+        "date": str(getattr(prop, "date", "")),
+        "source": getattr(prop, "source", "unknown"),
+        "sold": getattr(prop, "sold", False),
+        "status": getattr(prop, "status", "active"),
+        "missing_count": getattr(prop, "missing_count", 0)
+    }
+
+def dict_to_property(d):
+    from datetime import datetime
+    date_val = d.get("date", "")
+    if isinstance(date_val, str) and date_val:
+        try:
+            date_val = datetime.fromisoformat(date_val).date()
+        except Exception:
+            date_val = date_val
+    p = Property(
+        title=d.get("title", ""),
+        price=d["price"],
+        location=d["location"],
+        agency=d["agency"],
+        link=d["link"],
+        date=date_val
+    )
+    p.source = d.get("source", "unknown")
+    p.sold = d.get("sold", False)
+    p.status = d.get("status", "active")
+    p.missing_count = d.get("missing_count", 0)
+    return p
+
+def load_previous_properties():
+    if not os.path.exists(LISTINGS_FILE):
+        return []
+    with open(LISTINGS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return [dict_to_property(d) for d in data]
+
+def save_properties(properties):
+    with open(LISTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump([property_to_dict(p) for p in properties], f, indent=2)
+
+def merge_properties(new_props, old_props, successful_sources):
+    new_by_source = {}
+    for p in new_props:
+        new_by_source.setdefault(p.source, {})[p.link] = p
+
+    old_by_source = {}
+    for p in old_props:
+        old_by_source.setdefault(getattr(p, "source", "unknown"), {})[p.link] = p
+
+    merged = []
+
+    for source in successful_sources:
+        new_links = set(new_by_source.get(source, {}))
+        old_links = set(old_by_source.get(source, {}))
+
+        # Listings found in new scrape: reset status
+        for link, p in new_by_source.get(source, {}).items():
+            p.sold = False
+            p.status = "active"
+            p.missing_count = 0
+            merged.append(p)
+
+        # Listings missing from new scrape: increment missing_count
+        for link in old_links - new_links:
+            old = old_by_source[source][link]
+            old.missing_count = getattr(old, "missing_count", 0) + 1
+            if old.missing_count >= UNVERIFIED_LIMIT:
+                old.sold = True
+                old.status = "sold"
+            else:
+                old.sold = False
+                old.status = "unverified"
+            merged.append(old)
+
+    # Listings from sources not scraped this time: keep as is
+    for source in old_by_source:
+        if source not in successful_sources:
+            for link, p in old_by_source[source].items():
+                if not any((x.link == p.link and x.source == p.source) for x in merged):
+                    merged.append(p)
+
+    return merged
 
 class WebPropertyTracker:
     """Main web application class that replicates Android app functionality"""
@@ -45,11 +135,7 @@ class WebPropertyTracker:
         self.price_filter_max = 1000000
         self.scraper = None
         
-        # Initialize scraper if available
-        try:
-            self.scraper = PropertyScraper()
-        except:
-            logger.warning("PropertyScraper not available, using fallback")
+    # No PropertyScraper, use fetch_all_properties for scraping
             
         # Load initial data
         self.load_previous_properties()
@@ -94,44 +180,30 @@ class WebPropertyTracker:
     def update_exchange_rate(self):
         """Update EUR to GBP exchange rate"""
         try:
-            if hasattr(self, 'get_exchange_rate'):
-                self.exchange_rate = get_exchange_rate()
-            else:
-                # Fallback exchange rate
-                response = requests.get('https://api.exchangerate-api.com/v4/latest/EUR', timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    self.exchange_rate = data['rates'].get('GBP', 0.85)
-                else:
-                    self.exchange_rate = 0.85  # Fallback rate
-            logger.info(f"Updated exchange rate: 1 EUR = {self.exchange_rate:.4f} GBP")
+            self.exchange_rate = fetch_gbp_exchange_rate() or 0.042
+            logger.info(f"Updated exchange rate: 1 ZAR = £{self.exchange_rate:.5f}")
         except Exception as e:
             logger.error(f"Error updating exchange rate: {e}")
-            self.exchange_rate = 0.85  # Default fallback
+            self.exchange_rate = 0.042  # Default fallback
     
     def scrape_properties(self):
-        """Scrape properties using the property scraper"""
+        """Scrape properties using fetch_all_properties"""
         try:
-            if self.scraper:
-                new_properties = self.scraper.scrape_all_sources()
-                # Filter out blocked sources
-                filtered_properties = [
-                    prop for prop in new_properties 
-                    if prop.source not in self.blocked_sources
-                ]
-                
-                # Merge with previous properties
-                self.properties = self.merge_properties(filtered_properties, self.previous_properties)
-                
-                # Save properties
-                self.save_properties()
-                
-                logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
-                return len(filtered_properties)
-            else:
-                # Load from existing file if scraper not available
-                self.properties = self.previous_properties[:]
-                return len(self.properties)
+            new_properties, successful_sources = fetch_all_properties()
+            # Filter out blocked sources
+            filtered_properties = [
+                prop for prop in new_properties 
+                if prop.source not in self.blocked_sources
+            ]
+            # Merge with previous properties
+            self.properties = merge_properties(filtered_properties, self.previous_properties, successful_sources)
+            # Save properties
+            save_properties(self.properties)
+            # Update blocked sources
+            all_sources = {"property24", "privateproperty", "pamgolding", "sahometraders"}
+            self.blocked_sources = list(all_sources - set(successful_sources))
+            logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
+            return len(filtered_properties)
         except Exception as e:
             logger.error(f"Error scraping properties: {e}")
             self.properties = self.previous_properties[:]
