@@ -348,6 +348,33 @@ def index():
     """Main page"""
     # Just render the template, JS will fetch properties
     return render_template('index.html')
+@app.route('/api/properties')
+def get_properties():
+    """Get filtered properties for frontend JS"""
+    try:
+        tracker.current_filter = request.args.get('filter', 'all')
+        tracker.current_sort = request.args.get('sort', 'price_desc')
+        try:
+            tracker.price_filter_min = float(request.args.get('min_price', 0))
+            tracker.price_filter_max = float(request.args.get('max_price', 10000000))
+        except (ValueError, TypeError):
+            tracker.price_filter_min = 0
+            tracker.price_filter_max = 10000000
+        properties = tracker.get_filtered_properties()
+        properties_dict = [tracker.property_to_dict(prop) for prop in properties]
+        return jsonify({
+            'success': True,
+            'properties': properties_dict,
+            'count': len(properties_dict)
+        })
+    except Exception as e:
+        logger.error(f"Error getting properties: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'properties': [],
+            'count': 0
+        })
                     # Only run the app, do not scrape on startup
     """Get filtered properties"""
     try:
@@ -503,7 +530,7 @@ def get_blocked_sources():
 
 if __name__ == '__main__':
     # Load initial data
-    tracker.scrape_properties()
+    # tracker.scrape_properties()
     
     # Run the app
     port = int(os.environ.get('PORT', 5000))
