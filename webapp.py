@@ -3,8 +3,8 @@
 PropertyTracker Web Application
 Complete web version of the PropertyTracker Android app with all functionality
 """
-    # Only run the app, do not scrape on startup
-    
+from flask import Flask, render_template, jsonify, request
+import json
 import os
 import requests
 from datetime import datetime
