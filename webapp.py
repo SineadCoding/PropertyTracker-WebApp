@@ -148,12 +148,7 @@ class WebPropertyTracker:
             if os.path.exists('listings.json'):
                 with open('listings.json', 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    self.previous_properties = []
-                    for prop_data in data:
-                        prop = Property()
-                        for key, value in prop_data.items():
-                            setattr(prop, key, value)
-                        self.previous_properties.append(prop)
+                    self.previous_properties = [dict_to_property(d) for d in data]
                 logger.info(f"Loaded {len(self.previous_properties)} previous properties")
         except Exception as e:
             logger.error(f"Error loading previous properties: {e}")
