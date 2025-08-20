@@ -244,14 +244,16 @@ def scrape_and_update_listings():
     if rate:
         for prop in properties:
             # Add price_gbp to each property
+            price_val = None
             if hasattr(prop, 'price') and prop.price:
-                try:
-                    prop.price_gbp = round(float(prop.price) * rate, 2)
-                except Exception:
-                    prop.price_gbp = None
+                price_val = float(prop.price)
             elif isinstance(prop, dict) and 'price' in prop and prop['price']:
-                try:
-                    prop['price_gbp'] = round(float(prop['price']) * rate, 2)
-                except Exception:
-                    prop['price_gbp'] = None
+                price_val = float(prop['price'])
+            if price_val is not None:
+                # Convert ZAR to GBP using the exchange rate
+                gbp_val = round(price_val * rate, 2)
+                if hasattr(prop, 'price_gbp'):
+                    prop.price_gbp = gbp_val
+                elif isinstance(prop, dict):
+                    prop['price_gbp'] = gbp_val
     save_properties_to_json([prop.__dict__ if hasattr(prop, '__dict__') else prop for prop in properties])
