@@ -6,6 +6,7 @@ import random
 from models import Property
 import time
 import random
+import json
 
 # ✅ List of User-Agents to rotate
 USER_AGENTS = [
@@ -60,26 +61,21 @@ def fetch_property24():
     html = get_html(url)
     if not html:
         return [], False
-
     soup = BeautifulSoup(html, "html.parser")
     properties = []
     cards = soup.select("div.p24_regularTile")
     print(f"Found {len(cards)} property cards on Property24.")
-
     for listing in cards:
         link_tag = listing.select_one("a.p24_content")
         link = "https://www.property24.com" + link_tag["href"] if link_tag and link_tag.get("href") else ""
-
         price_tag = listing.select_one(".p24_price")
         price_str = price_tag.text if price_tag else ""
         price_digits = re.sub(r"[^\d]", "", price_str)
         price = int(price_digits) if price_digits else 0
-
         title = listing.select_one(".p24_title").text.strip() if listing.select_one(".p24_title") else ""
         location = listing.select_one(".p24_location").text.strip() if listing.select_one(".p24_location") else ""
         agency_tag = listing.select_one(".p24_branding img")
         agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "Property24"
-
         print(f"Scraped: {title} | {location} | {price} | {agency}")
         prop = Property(title, price, location, agency, link, datetime.today().date())
         prop.source = source
@@ -163,7 +159,7 @@ def fetch_pamgolding():
 
 def fetch_sahometraders():
     source = "sahometraders"
-    url = "https://www.sahometraders.co.za/industrial-property-to-rent-in-garden-route-as1"
+    url = "https://www.sahometraders.co.za/industrial-property-for-sale-in-garden-route-as1"
     html = get_html(url)
     if not html:
         return [], False
@@ -201,7 +197,7 @@ def fetch_all_properties():
     all_properties = []
     successful_sources = []
     fetch_funcs = [
-        # fetch_property24,  # Commented out as requested
+        fetch_property24,
         fetch_privateproperty,
         fetch_pamgolding,
         fetch_sahometraders
@@ -225,15 +221,37 @@ def fetch_all_properties():
             seen_links.add(prop.link)
             deduped_properties.append(prop)
     return deduped_properties, successful_sources
-# Add function to save properties to listings.json
-import json
+# Currency exchange scraping
+def get_exchange_rate():
+    # Example: scrape from exchangerate.host
+    try:
+        resp = requests.get("https://api.exchangerate.host/latest?base=ZAR&symbols=GBP")
+        data = resp.json()
+        rate = data['rates']['GBP']
+        return rate
+    except Exception as e:
+        print(f"[ERROR] Exchange rate fetch failed: {e}")
+        return None
 
 def save_properties_to_json(properties, filename="listings.json"):
-    properties_dicts = [prop.__dict__ for prop in properties]
+    properties_dicts = [prop for prop in properties]
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(properties_dicts, f, ensure_ascii=False, indent=2)
 
-# Main entry point for refresh
 def scrape_and_update_listings():
     properties, _ = fetch_all_properties()
-    save_properties_to_json(properties)
+    rate = get_exchange_rate()
+    if rate:
+        for prop in properties:
+            # Add price_gbp to each property
+            if hasattr(prop, 'price') and prop.price:
+                try:
+                    prop.price_gbp = round(float(prop.price) * rate, 2)
+                except Exception:
+                    prop.price_gbp = None
+            elif isinstance(prop, dict) and 'price' in prop and prop['price']:
+                try:
+                    prop['price_gbp'] = round(float(prop['price']) * rate, 2)
+                except Exception:
+                    prop['price_gbp'] = None
+    save_properties_to_json([prop.__dict__ if hasattr(prop, '__dict__') else prop for prop in properties])
