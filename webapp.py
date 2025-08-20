@@ -208,14 +208,12 @@ class WebPropertyTracker:
     def get_filtered_properties(self) -> List:
         """Get properties filtered by current settings"""
         filtered = self.properties[:]
-        # Only show active properties
-        filtered = [p for p in filtered if p.status == "active"]
         # Filter by price range (convert to EUR if needed)
         price_filtered = []
         for prop in filtered:
             try:
-                price = float(prop.price) if prop.price else 0
-                if prop.currency == "GBP":
+                price = float(getattr(prop, 'price', 0)) if getattr(prop, 'price', None) else 0
+                if hasattr(prop, 'currency') and getattr(prop, 'currency', None) == "GBP":
                     price = price / self.exchange_rate  # Convert GBP to EUR for comparison
                 if self.price_filter_min <= price <= self.price_filter_max:
                     price_filtered.append(prop)
@@ -224,21 +222,21 @@ class WebPropertyTracker:
         filtered = price_filtered
         # Sort properties
         if self.current_sort == "price_asc":
-            filtered.sort(key=lambda p: float(p.price or 0))
+            filtered.sort(key=lambda p: float(getattr(p, 'price', 0) or 0))
         elif self.current_sort == "price_desc":
-            filtered.sort(key=lambda p: float(p.price or 0), reverse=True)
+            filtered.sort(key=lambda p: float(getattr(p, 'price', 0) or 0), reverse=True)
         elif self.current_sort == "bedrooms_asc":
-            filtered.sort(key=lambda p: int(p.bedrooms or 0))
+            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0) or 0))
         elif self.current_sort == "bedrooms_desc":
-            filtered.sort(key=lambda p: int(p.bedrooms or 0), reverse=True)
+            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0) or 0), reverse=True)
         elif self.current_sort == "area_asc":
-            filtered.sort(key=lambda p: float(p.area or 0))
+            filtered.sort(key=lambda p: float(getattr(p, 'area', 0) or 0))
         elif self.current_sort == "area_desc":
-            filtered.sort(key=lambda p: float(p.area or 0), reverse=True)
+            filtered.sort(key=lambda p: float(getattr(p, 'area', 0) or 0), reverse=True)
         elif self.current_sort == "date_asc":
-            filtered.sort(key=lambda p: p.first_seen or "")
+            filtered.sort(key=lambda p: getattr(p, 'first_seen', '') or getattr(p, 'date', ''))
         elif self.current_sort == "date_desc":
-            filtered.sort(key=lambda p: p.first_seen or "", reverse=True)
+            filtered.sort(key=lambda p: getattr(p, 'first_seen', '') or getattr(p, 'date', ''), reverse=True)
         return filtered
     
     def get_property_stats(self) -> Dict[str, int]:
