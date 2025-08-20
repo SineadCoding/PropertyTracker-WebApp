@@ -3,153 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PropertyTracker</title>
+    <title>Property Listings</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #6dd5fa 0%, #8e54e9 100%);
+            background: #f7f7f7;
             margin: 0;
         }
         .main-container {
-            max-width: 1100px;
-            margin: 40px auto;
+            max-width: 500px;
+            margin: 0 auto;
             background: #fff;
-            border-radius: 32px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-            padding: 32px 32px 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 0;
         }
         .header {
             display: flex;
             align-items: center;
-            gap: 18px;
-            margin-bottom: 8px;
+            justify-content: space-between;
+            padding: 18px 24px 0 24px;
         }
         .header-logo {
-            font-size: 2.8em;
+            font-size: 1.8em;
         }
         .header-title {
-            font-size: 2.5em;
+            font-size: 1.3em;
             font-weight: 700;
             color: #222;
         }
-        .header-desc {
-            color: #444;
-            font-size: 1.15em;
-            margin-bottom: 28px;
-        }
-        .filters {
+        .tab-bar {
             display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            margin-bottom: 18px;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            background: #fff;
         }
-        .filters input, .filters select {
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid #d0d0d0;
-            font-size: 1em;
-        }
-        .filters button {
-            padding: 10px 22px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .filters .refresh-btn {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-            color: #fff;
-        }
-        .filters .refresh-btn:hover {
-            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
-        }
-        .filters .show-gbp-btn {
-            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
-            color: #fff;
-        }
-        .filters .show-gbp-btn:hover {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-        }
-        .filters .clear-btn {
-            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
-            color: #fff;
-        }
-        .filters .clear-btn:hover {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-        }
-        .stats {
-            background: #eaf6ff;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 18px;
+        .tab {
+            flex: 1;
             text-align: center;
-            font-size: 1.25em;
+            padding: 12px 0;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            background: #174c3c;
+            border-right: 1px solid #eee;
+        }
+        .tab.active {
+            background: #174c3c;
+            color: #fff;
+        }
+        .tab.inactive {
+            background: #222;
+            color: #fff;
+        }
+        .filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: #f7f7f7;
+        }
+        .filter-bar label {
+            font-size: 1em;
+            color: #222;
+        }
+        .filter-bar input {
+            width: 80px;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        .filter-bar button {
+            background: #174c3c;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 18px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .listings-title {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin: 18px 0 12px 0;
             color: #222;
         }
         .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 0 18px 18px 18px;
         }
         .card {
-            background: linear-gradient(135deg, #6dd5fa 0%, #8e54e9 100%);
-            border-radius: 18px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            padding: 24px 18px 18px 18px;
-            color: #fff;
+            background: #fff;
+            border: 2px solid #174c3c;
+            border-radius: 12px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+            padding: 18px 16px 16px 16px;
+            color: #222;
             position: relative;
         }
         .card-title {
-            font-size: 1.3em;
+            font-size: 1.1em;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .card-price {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
-        .card-status {
-            position: absolute;
-            top: 18px;
-            right: 18px;
-            background: #1ed760;
-            color: #fff;
-            font-size: 0.95em;
-            font-weight: 600;
-            border-radius: 6px;
-            padding: 4px 12px;
-        }
-        .card-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+        .card-agency {
             font-size: 0.98em;
-            margin-bottom: 8px;
-        }
-        .card-details i {
-            margin-right: 4px;
+            color: #6c757d;
+            margin-bottom: 10px;
         }
         .card-link {
             margin-top: 10px;
+            text-align: center;
         }
-        .card-link a {
+        .card-link button {
+            background: #222;
             color: #fff;
-            text-decoration: underline;
-            font-weight: 500;
-        }
-        .summary-bar {
-            background: #f4f4f4;
-            border-radius: 8px;
-            padding: 12px 18px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.1em;
-            color: #333;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 0;
+            width: 100%;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -157,130 +143,64 @@
     <div class="main-container">
         <div class="header">
             <span class="header-logo"><i class="fa fa-industry"></i></span>
-            <span class="header-title">Garden Route Industrial Properties</span>
+            <span class="header-title">Property</span>
         </div>
-    <div class="header-desc">Track, filter, and view industrial property listings. Prices in ZAR and GBP. Blocked sources are highlighted.</div>
-        <div class="filters">
-            <label>Min Price (ZAR):
+        <div class="filter-bar">
+            <div>
+                <label>Min Price:</label>
                 <input type="number" id="minPrice" value="0">
-            </label>
-            <label>Max Price (ZAR):
+                <label>Max Price:</label>
                 <input type="number" id="maxPrice" value="10000000">
-            </label>
-            <label>Sort By:
-                <select id="sortSelect">
-                    <option value="price_desc">Price (High-Low)</option>
-                    <option value="price_asc">Price (Low-High)</option>
-                    <option value="date_desc">Date (Newest)</option>
-                    <option value="date_asc">Date (Oldest)</option>
-                    <option value="area_desc">Area (Large-Small)</option>
-                    <option value="area_asc">Area (Small-Large)</option>
-                </select>
-            </label>
-            <button id="refreshBtn" class="refresh-btn">Refresh Listings</button>
-            <button id="clearBtn" class="clear-btn">Clear Filters</button>
+            </div>
+            <button id="refreshBtn">Refresh</button>
         </div>
-        <div class="summary-bar">
-            <b>Total:</b> <span id="totalCount"></span> | <b>Active:</b> <span id="activeCount"></span> | <b>GBP Rate:</b> <span id="gbpRate"></span>
-        </div>
+        <div class="listings-title">Current Listings</div>
         <div class="cards" id="propertyCards">
             <!-- Property cards will be rendered here by JS -->
+        </div>
+        <div class="tab-bar">
+            <div class="tab active">Listings</div>
+            <div class="tab inactive">Sold</div>
         </div>
     </div>
     <script>
     function fetchProperties() {
         const minPrice = document.getElementById('minPrice').value;
         const maxPrice = document.getElementById('maxPrice').value;
-        const status = 'active';
-        const sort = document.getElementById('sortSelect').value;
-        fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=${status}&sort=${sort}`)
+        fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=active`)
             .then(res => res.json())
             .then(data => {
                 renderProperties(data.properties);
-                updateStats();
             });
     }
     function renderProperties(listings) {
         const container = document.getElementById('propertyCards');
         container.innerHTML = '';
         listings.forEach(listing => {
-            let blocked = listing.source && window.blockedSources && window.blockedSources.includes(listing.source);
-            let statusLabel = '';
-            if (listing.status === 'unverified') statusLabel = '<span class="card-status" style="background:#ffd700;color:#222">UNVERIFIED</span>';
-            else if (blocked) statusLabel = '<span class="card-status" style="background:#888">BLOCKED</span>';
-
-            // Format price with thousands separator
-            function formatPrice(val) {
-                if (!val) return '';
-                return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            }
-            let priceZAR = formatPrice(listing.price);
-            let priceGBP = formatPrice(listing.price_gbp || listing.price_pound || '');
-
-            // Always show a clickable link if available
+            let priceZAR = listing.price ? 'R' + Number(listing.price).toLocaleString() : '';
+            let agency = listing.agency || listing.source || '';
             let linkUrl = listing.link || listing.url || '#';
-            let linkHtml = linkUrl && linkUrl !== '#' ? `<a href="${linkUrl}" target="_blank" style="font-size:1.1em;font-weight:600;color:#fff;text-decoration:underline;display:block;margin-top:10px;">🔗 View Listing</a>` : '<span style="color:#ccc">No Link</span>';
-
             container.innerHTML += `
                 <div class="card">
-                    ${statusLabel}
-                    <div class="card-title">${listing.title || listing.address}</div>
-                    <div class="card-location"><i class="fa fa-map-marker-alt"></i> ${listing.location || listing.address}</div>
-                    <div class="card-price">
-                        <span class="currency rand">R ${priceZAR}</span>
-                        <span class="currency pound">£ ${priceGBP}</span>
+                    <div class="card-title">${listing.title || listing.location || listing.address}</div>
+                    <div class="card-price">${priceZAR}</div>
+                    <div class="card-agency">${agency}</div>
+                    <div class="card-link">
+                        <button onclick="window.open('${linkUrl}', '_blank')">View Listing</button>
                     </div>
-                    <div class="card-agency">Agency: ${listing.agency || listing.source || ''}</div>
-                    ${linkHtml}
                 </div>
             `;
         });
     }
-    function updateStats() {
-        fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('totalCount').textContent = data.stats.total;
-                document.getElementById('activeCount').textContent = data.stats.active;
-                document.getElementById('gbpRate').textContent = '£' + data.exchange_rate.toFixed(3);
-            });
-    }
-    // Refresh listings by scraping and updating
-    function refreshListings() {
+    document.getElementById('refreshBtn').onclick = function() {
         fetch('/api/scrape', {method:'POST'})
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
-                    fetchProperties();
-                } else {
-                    alert('Failed to refresh listings: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(() => alert('Failed to refresh listings.'));
-    }
-    function clearFilters() {
-        document.getElementById('minPrice').value = 0;
-        document.getElementById('maxPrice').value = 10000000;
-        document.getElementById('sortSelect').value = 'price_desc';
-        fetchProperties();
-    }
-    function fetchBlockedSources() {
-        fetch('/api/blocked_sources')
-            .then(res => res.json())
-            .then(data => {
-                window.blockedSources = data.blocked_sources || [];
                 fetchProperties();
             });
-    }
+    };
     // Initial load
-    // On page load, update exchange rate and fetch listings
-    fetch('/api/refresh', {method:'POST'}).then(() => {
-        fetchBlockedSources();
-    });
-    // Responsive improvements
-    window.addEventListener('resize', () => {
-        document.querySelector('.main-container').style.maxWidth = window.innerWidth < 600 ? '100%' : '1100px';
-    });
+    fetchProperties();
     </script>
 </body>
 </html>
