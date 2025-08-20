@@ -82,9 +82,18 @@ class WebPropertyTracker:
                     self.previous_properties = []
                     self.properties = []
                     for prop_data in data:
-                        prop = Property()
-                        for key, value in prop_data.items():
-                            setattr(prop, key, value)
+                        try:
+                            prop = Property(**prop_data)
+                        except TypeError:
+                            # fallback for incomplete data
+                            prop = Property(
+                                prop_data.get('title', ''),
+                                prop_data.get('price', 0),
+                                prop_data.get('location', ''),
+                                prop_data.get('agency', ''),
+                                prop_data.get('link', ''),
+                                prop_data.get('date', '')
+                            )
                         self.previous_properties.append(prop)
                         self.properties.append(prop)
                 logger.info(f"Loaded {len(self.properties)} properties from listings.json")
