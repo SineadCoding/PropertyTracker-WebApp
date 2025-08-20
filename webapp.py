@@ -299,7 +299,7 @@ def get_properties():
         # Get filtered properties
         properties = tracker.get_filtered_properties()
         properties_dict = [tracker.property_to_dict(prop) for prop in properties]
-        
+        logger.info(f"API /api/properties returning {len(properties_dict)} properties: {properties_dict}")
         return jsonify({
             'success': True,
             'properties': properties_dict,
