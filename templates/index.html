@@ -178,12 +178,13 @@
         container.innerHTML = '';
         listings.forEach(listing => {
             let priceZAR = listing.price ? 'R' + Number(listing.price).toLocaleString() : '';
+            let priceGBP = listing.price_gbp ? `£${Number(listing.price_gbp).toLocaleString()}` : '';
             let agency = listing.agency || listing.source || '';
             let linkUrl = listing.link || listing.url || '#';
             container.innerHTML += `
                 <div class="card">
                     <div class="card-title">${listing.title || listing.location || listing.address}</div>
-                    <div class="card-price">${priceZAR}</div>
+                    <div class="card-price">${priceZAR}${priceGBP ? `<br><span style='color:#174c3c;font-size:0.95em;'>${priceGBP}</span>` : ''}</div>
                     <div class="card-agency">${agency}</div>
                     <div class="card-link">
                         <button onclick="window.open('${linkUrl}', '_blank')">View Listing</button>
