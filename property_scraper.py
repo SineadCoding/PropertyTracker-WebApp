@@ -201,7 +201,7 @@ def fetch_all_properties():
     all_properties = []
     successful_sources = []
     fetch_funcs = [
-        fetch_property24,
+        # fetch_property24,  # Commented out as requested
         fetch_privateproperty,
         fetch_pamgolding,
         fetch_sahometraders
@@ -213,9 +213,27 @@ def fetch_all_properties():
                 if props and hasattr(props[0], "source"):
                     successful_sources.append(props[0].source)
                 elif fetch_func.__name__.startswith("fetch_"):
-                    # fallback: use function name as source
                     successful_sources.append(fetch_func.__name__[6:])
             all_properties.extend(props)
         except Exception as e:
             print(f"[ERROR] {fetch_func.__name__} failed: {e}")
-    return all_properties, successful_sources
+    # Deduplicate by 'link'
+    seen_links = set()
+    deduped_properties = []
+    for prop in all_properties:
+        if hasattr(prop, 'link') and prop.link not in seen_links:
+            seen_links.add(prop.link)
+            deduped_properties.append(prop)
+    return deduped_properties, successful_sources
+# Add function to save properties to listings.json
+import json
+
+def save_properties_to_json(properties, filename="listings.json"):
+    properties_dicts = [prop.__dict__ for prop in properties]
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(properties_dicts, f, ensure_ascii=False, indent=2)
+
+# Main entry point for refresh
+def scrape_and_update_listings():
+    properties, _ = fetch_all_properties()
+    save_properties_to_json(properties)
