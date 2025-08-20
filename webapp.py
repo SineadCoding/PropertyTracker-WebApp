@@ -22,14 +22,31 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Import existing modules (keeping original files unchanged)
+# Import Property always, handle PropertyScraper separately
 try:
     from property_scraper import PropertyScraper
+except ImportError as e:
+    logger.error(f"Import error: {e}")
+    PropertyScraper = None
+try:
     from models import Property
+except ImportError as e:
+    logger.error(f"Import error: {e}")
+    # Fallback Property class
+    class Property:
+        def __init__(self, title='', price='', location='', agency='', link='', date='', **kwargs):
+            self.title = title
+            self.price = price
+            self.location = location
+            self.agency = agency
+            self.link = link
+            self.date = date
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+try:
     from utils import get_exchange_rate, format_price_gbp
 except ImportError as e:
     logger.error(f"Import error: {e}")
-    # Fallback implementations will be created below
 
 class WebPropertyTracker:
     """Main web application class that replicates Android app functionality"""
