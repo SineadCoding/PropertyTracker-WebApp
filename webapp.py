@@ -232,23 +232,18 @@ class WebPropertyTracker:
     def property_to_dict(self, prop) -> Dict[str, Any]:
         """Convert property object to dictionary"""
         prop_dict = {
-            'address': getattr(prop, 'address', ''),
+            'title': getattr(prop, 'title', getattr(prop, 'address', getattr(prop, 'location', ''))),
+            'location': getattr(prop, 'location', getattr(prop, 'address', '')),
+            'address': getattr(prop, 'address', getattr(prop, 'location', '')),
             'price': getattr(prop, 'price', ''),
-            'currency': getattr(prop, 'currency', 'EUR'),
-            'bedrooms': getattr(prop, 'bedrooms', ''),
-            'bathrooms': getattr(prop, 'bathrooms', ''),
-            'area': getattr(prop, 'area', ''),
-            'source': getattr(prop, 'source', ''),
-            'url': getattr(prop, 'url', ''),
-            'image_url': getattr(prop, 'image_url', ''),
-            'description': getattr(prop, 'description', ''),
+            'agency': getattr(prop, 'agency', getattr(prop, 'source', '')),
+            'link': getattr(prop, 'link', getattr(prop, 'url', '')),
+            'date': getattr(prop, 'date', getattr(prop, 'first_seen', '')),
             'status': getattr(prop, 'status', 'active'),
-            'first_seen': getattr(prop, 'first_seen', ''),
-            'last_seen': getattr(prop, 'last_seen', '')
         }
-        
         # Add GBP price if currency is EUR
-        if prop_dict['currency'] == 'EUR' and prop_dict['price']:
+        currency = getattr(prop, 'currency', 'ZAR')
+        if currency == 'EUR' and prop_dict['price']:
             try:
                 eur_price = float(prop_dict['price'])
                 gbp_price = eur_price * self.exchange_rate
@@ -257,7 +252,6 @@ class WebPropertyTracker:
                 prop_dict['price_gbp'] = ''
         else:
             prop_dict['price_gbp'] = prop_dict['price']
-        
         return prop_dict
 
 # Initialize the tracker
