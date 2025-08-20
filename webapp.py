@@ -80,15 +80,18 @@ class WebPropertyTracker:
                 with open('listings.json', 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.previous_properties = []
+                    self.properties = []
                     for prop_data in data:
                         prop = Property()
                         for key, value in prop_data.items():
                             setattr(prop, key, value)
                         self.previous_properties.append(prop)
-                logger.info(f"Loaded {len(self.previous_properties)} previous properties")
+                        self.properties.append(prop)
+                logger.info(f"Loaded {len(self.properties)} properties from listings.json")
         except Exception as e:
             logger.error(f"Error loading previous properties: {e}")
             self.previous_properties = []
+            self.properties = []
     
     def load_blocked_sources(self):
         """Load blocked sources"""
