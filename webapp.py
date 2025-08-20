@@ -3,6 +3,7 @@
 PropertyTracker Web Application
 Complete web version of the PropertyTracker Android app with all functionality
 """
+
 from flask import Flask, render_template, jsonify, request
 import json
 import os
@@ -21,116 +22,18 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-
-# Import models and scraping logic
-from models import Property
-from property_scraper import fetch_all_properties
-from utils import fetch_gbp_exchange_rate
-
-LISTINGS_FILE = "listings.json"
-UNVERIFIED_LIMIT = 3
-
-def property_to_dict(prop):
-    # GBP conversion
-    try:
-        gbp_rate = fetch_gbp_exchange_rate() or 0.042
-        price_gbp = float(getattr(prop, "price", 0)) * gbp_rate
-    except Exception:
-        price_gbp = ""
-    link_val = getattr(prop, "link", "")
-    url_val = getattr(prop, "url", link_val)
-    return {
-        "title": getattr(prop, "title", ""),
-        "location": getattr(prop, "location", ""),
-        "price": getattr(prop, "price", ""),
-        "price_gbp": f"{price_gbp:,.0f}" if price_gbp else "",
-        "agency": getattr(prop, "agency", ""),
-        "link": link_val,
-        "url": url_val,
-        "status": getattr(prop, "status", "active"),
-        "source": getattr(prop, "source", "unknown"),
-        "sold": getattr(prop, "sold", False)
-    }
-
-def dict_to_property(d):
-    from datetime import datetime
-    date_val = d.get("date", "")
-    if isinstance(date_val, str) and date_val:
-        try:
-            date_val = datetime.fromisoformat(date_val).date()
-        except Exception:
-            date_val = date_val
-    p = Property(
-        title=d.get("title", ""),
-        price=d["price"],
-        location=d["location"],
-        agency=d["agency"],
-        link=d["link"],
-        date=date_val
-    )
-    p.source = d.get("source", "unknown")
-    p.sold = d.get("sold", False)
-    p.status = d.get("status", "active")
-    p.missing_count = d.get("missing_count", 0)
-    return p
-
-def load_previous_properties():
-    if not os.path.exists(LISTINGS_FILE):
-        return []
-    with open(LISTINGS_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return [dict_to_property(d) for d in data]
-
-def save_properties(properties):
-    with open(LISTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump([property_to_dict(p) for p in properties], f, indent=2)
-
-def merge_properties(new_props, old_props, successful_sources):
-    new_by_source = {}
-    for p in new_props:
-        new_by_source.setdefault(p.source, {})[p.link] = p
-
-    old_by_source = {}
-    for p in old_props:
-        old_by_source.setdefault(getattr(p, "source", "unknown"), {})[p.link] = p
-
-    merged = []
-
-    for source in successful_sources:
-        new_links = set(new_by_source.get(source, {}))
-        old_links = set(old_by_source.get(source, {}))
-
-        # Listings found in new scrape: reset status
-        for link, p in new_by_source.get(source, {}).items():
-            p.sold = False
-            p.status = "active"
-            p.missing_count = 0
-            merged.append(p)
-
-        # Listings missing from new scrape: increment missing_count
-        for link in old_links - new_links:
-            old = old_by_source[source][link]
-            old.missing_count = getattr(old, "missing_count", 0) + 1
-            if old.missing_count >= UNVERIFIED_LIMIT:
-                old.sold = True
-                old.status = "sold"
-            else:
-                old.sold = False
-                old.status = "unverified"
-            merged.append(old)
-
-    # Listings from sources not scraped this time: keep as is
-    for source in old_by_source:
-        if source not in successful_sources:
-            for link, p in old_by_source[source].items():
-                if not any((x.link == p.link and x.source == p.source) for x in merged):
-                    merged.append(p)
-
-    return merged
+# Import existing modules (keeping original files unchanged)
+try:
+    from property_scraper import PropertyScraper
+    from models import Property
+    from utils import get_exchange_rate, format_price_gbp
+except ImportError as e:
+    logger.error(f"Import error: {e}")
+    # Fallback implementations will be created below
 
 class WebPropertyTracker:
     """Main web application class that replicates Android app functionality"""
-
+    
     def __init__(self):
         self.properties = []
         self.previous_properties = []
@@ -141,11 +44,17 @@ class WebPropertyTracker:
         self.price_filter_min = 0
         self.price_filter_max = 1000000
         self.scraper = None
+        
+        # Initialize scraper if available
+        try:
+            self.scraper = PropertyScraper()
+        except:
+            logger.warning("PropertyScraper not available, using fallback")
+            
+        # Load initial data
         self.load_previous_properties()
-        self.properties = self.previous_properties[:]
         self.load_blocked_sources()
         self.update_exchange_rate()
-        
     
     def load_previous_properties(self):
         """Load previously saved properties"""
@@ -153,7 +62,12 @@ class WebPropertyTracker:
             if os.path.exists('listings.json'):
                 with open('listings.json', 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    self.previous_properties = [dict_to_property(d) for d in data]
+                    self.previous_properties = []
+                    for prop_data in data:
+                        prop = Property()
+                        for key, value in prop_data.items():
+                            setattr(prop, key, value)
+                        self.previous_properties.append(prop)
                 logger.info(f"Loaded {len(self.previous_properties)} previous properties")
         except Exception as e:
             logger.error(f"Error loading previous properties: {e}")
@@ -180,30 +94,44 @@ class WebPropertyTracker:
     def update_exchange_rate(self):
         """Update EUR to GBP exchange rate"""
         try:
-            self.exchange_rate = fetch_gbp_exchange_rate() or 0.042
-            logger.info(f"Updated exchange rate: 1 ZAR = £{self.exchange_rate:.5f}")
+            if hasattr(self, 'get_exchange_rate'):
+                self.exchange_rate = get_exchange_rate()
+            else:
+                # Fallback exchange rate
+                response = requests.get('https://api.exchangerate-api.com/v4/latest/EUR', timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    self.exchange_rate = data['rates'].get('GBP', 0.85)
+                else:
+                    self.exchange_rate = 0.85  # Fallback rate
+            logger.info(f"Updated exchange rate: 1 EUR = {self.exchange_rate:.4f} GBP")
         except Exception as e:
             logger.error(f"Error updating exchange rate: {e}")
-            self.exchange_rate = 0.042  # Default fallback
+            self.exchange_rate = 0.85  # Default fallback
     
     def scrape_properties(self):
-        """Scrape properties using fetch_all_properties"""
+        """Scrape properties using the property scraper"""
         try:
-            new_properties, successful_sources = fetch_all_properties()
-            # Filter out blocked sources
-            filtered_properties = [
-                prop for prop in new_properties 
-                if prop.source not in self.blocked_sources
-            ]
-            # Merge with previous properties
-            self.properties = merge_properties(filtered_properties, self.previous_properties, successful_sources)
-            # Save properties
-            save_properties(self.properties)
-            # Update blocked sources
-            all_sources = {"property24", "privateproperty", "pamgolding", "sahometraders"}
-            self.blocked_sources = list(all_sources - set(successful_sources))
-            logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
-            return len(filtered_properties)
+            if self.scraper:
+                new_properties = self.scraper.scrape_all_sources()
+                # Filter out blocked sources
+                filtered_properties = [
+                    prop for prop in new_properties 
+                    if prop.source not in self.blocked_sources
+                ]
+                
+                # Merge with previous properties
+                self.properties = self.merge_properties(filtered_properties, self.previous_properties)
+                
+                # Save properties
+                self.save_properties()
+                
+                logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
+                return len(filtered_properties)
+            else:
+                # Load from existing file if scraper not available
+                self.properties = self.previous_properties[:]
+                return len(self.properties)
         except Exception as e:
             logger.error(f"Error scraping properties: {e}")
             self.properties = self.previous_properties[:]
@@ -233,11 +161,8 @@ class WebPropertyTracker:
                 prop.last_seen = datetime.now().isoformat()
                 merged[key] = prop
         
-        # Mark properties as sold if not seen in new scrape
-        new_keys = {f"{prop.address}_{prop.price}_{prop.source}" for prop in new_properties}
-        for key, prop in merged.items():
-            if key not in new_keys and prop.status == "active":
-                prop.status = "sold"
+    # Remove sold marking logic
+    # Only keep active properties
         
         return list(merged.values())
     
@@ -263,19 +188,14 @@ class WebPropertyTracker:
     def get_filtered_properties(self) -> List:
         """Get properties filtered by current settings"""
         filtered = self.properties[:]
-        # Filter by status
-        if self.current_filter == "active":
-            filtered = [p for p in filtered if p.status == "active"]
-        elif self.current_filter == "sold":
-            filtered = [p for p in filtered if p.status == "sold"]
-        elif self.current_filter == "unverified":
-            filtered = [p for p in filtered if p.status == "unverified"]
+        # Only show active properties
+        filtered = [p for p in filtered if p.status == "active"]
         # Filter by price range (convert to EUR if needed)
         price_filtered = []
         for prop in filtered:
             try:
                 price = float(prop.price) if prop.price else 0
-                if hasattr(prop, 'currency') and prop.currency == "GBP":
+                if prop.currency == "GBP":
                     price = price / self.exchange_rate  # Convert GBP to EUR for comparison
                 if self.price_filter_min <= price <= self.price_filter_max:
                     price_filtered.append(prop)
@@ -288,26 +208,24 @@ class WebPropertyTracker:
         elif self.current_sort == "price_desc":
             filtered.sort(key=lambda p: float(p.price or 0), reverse=True)
         elif self.current_sort == "bedrooms_asc":
-            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0)))
+            filtered.sort(key=lambda p: int(p.bedrooms or 0))
         elif self.current_sort == "bedrooms_desc":
-            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0)), reverse=True)
+            filtered.sort(key=lambda p: int(p.bedrooms or 0), reverse=True)
         elif self.current_sort == "area_asc":
-            filtered.sort(key=lambda p: float(getattr(p, 'area', 0)))
+            filtered.sort(key=lambda p: float(p.area or 0))
         elif self.current_sort == "area_desc":
-            filtered.sort(key=lambda p: float(getattr(p, 'area', 0)), reverse=True)
+            filtered.sort(key=lambda p: float(p.area or 0), reverse=True)
         elif self.current_sort == "date_asc":
-            filtered.sort(key=lambda p: getattr(p, 'first_seen', ""))
+            filtered.sort(key=lambda p: p.first_seen or "")
         elif self.current_sort == "date_desc":
-            filtered.sort(key=lambda p: getattr(p, 'first_seen', ""), reverse=True)
+            filtered.sort(key=lambda p: p.first_seen or "", reverse=True)
         return filtered
     
     def get_property_stats(self) -> Dict[str, int]:
         """Get property statistics"""
         stats = {
-            "total": len(self.properties),
-            "active": len([p for p in self.properties if p.status == "active"]),
-            "sold": len([p for p in self.properties if p.status == "sold"]),
-            "unverified": len([p for p in self.properties if p.status == "unverified"])
+            "total": len([p for p in self.properties if p.status == "active"]),
+            "active": len([p for p in self.properties if p.status == "active"])
         }
         return stats
     
@@ -349,36 +267,10 @@ tracker = WebPropertyTracker()
 @app.route('/')
 def index():
     """Main page"""
-    # Just render the template, JS will fetch properties
     return render_template('index.html')
+
 @app.route('/api/properties')
 def get_properties():
-    """Get filtered properties for frontend JS"""
-    try:
-        tracker.current_filter = request.args.get('filter', 'all')
-        tracker.current_sort = request.args.get('sort', 'price_desc')
-        try:
-            tracker.price_filter_min = float(request.args.get('min_price', 0))
-            tracker.price_filter_max = float(request.args.get('max_price', 10000000))
-        except (ValueError, TypeError):
-            tracker.price_filter_min = 0
-            tracker.price_filter_max = 10000000
-        properties = tracker.get_filtered_properties()
-        properties_dict = [tracker.property_to_dict(prop) for prop in properties]
-        return jsonify({
-            'success': True,
-            'properties': properties_dict,
-            'count': len(properties_dict)
-        })
-    except Exception as e:
-        logger.error(f"Error getting properties: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'properties': [],
-            'count': 0
-        })
-                    # Only run the app, do not scrape on startup
     """Get filtered properties"""
     try:
         # Update filters from request
@@ -531,18 +423,10 @@ def get_blocked_sources():
             'blocked_sources': []
         })
 
-
-# Route for sold listings page
-@app.route('/sold')
-def sold_listings():
-    """Render a page showing only sold listings"""
-    sold_props = [tracker.property_to_dict(p) for p in tracker.get_filtered_properties() if getattr(p, 'status', '') == 'sold']
-    return render_template('sold.html', properties=sold_props)
-
 if __name__ == '__main__':
+    # Load initial data
+    tracker.scrape_properties()
+    
     # Run the app
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
-
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

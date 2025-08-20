@@ -1,4 +1,5 @@
 kivy
 requests
 beautifulsoup4
-flask
+Flask
+gunicorn

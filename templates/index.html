@@ -171,17 +171,12 @@
             <span class="header-logo"><i class="fa fa-industry"></i></span>
             <span class="header-title">Garden Route Industrial Properties</span>
         </div>
-        <div class="header-desc">Track, filter, and view industrial property listings. Prices in ZAR and GBP. Sold properties and blocked sources are highlighted.</div>
+    <div class="header-desc">Track, filter, and view industrial property listings. Prices in ZAR and GBP. Blocked sources are highlighted.</div>
         <div class="filters">
             <label>Min Price (ZAR): <input type="number" id="minPrice" value="0" min="0"></label>
             <label>Max Price (ZAR): <input type="number" id="maxPrice" value="10000000" min="0"></label>
             <label>Status:
-                <select id="statusFilter">
-                    <option value="all">All</option>
-                    <option value="active">Active</option>
-                    <option value="sold">Sold</option>
-                    <option value="unverified">Unverified</option>
-                </select>
+                <!-- Status filter removed, only active properties shown -->
             </label>
             <label>Sort By:
                 <select id="sortOrder">
@@ -194,24 +189,24 @@
             </label>
         <button class="refresh-btn" onclick="refreshListings()">Refresh Listings</button>
             <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
-            <button class="show-gbp-btn" onclick="toggleSold()" id="soldToggle">Show Sold Properties</button>
+            <!-- Removed sold toggle button -->
         </div>
         <div class="stats" id="stats"></div>
         <div style="margin-bottom:18px;text-align:right">
-            <a href="/sold" style="font-weight:600;color:#fc5c7d;text-decoration:underline">View Sold Listings</a>
+            <!-- Removed sold listings link -->
         </div>
         <div class="cards" id="propertyCards">
             <!-- Property cards will be rendered here by JS -->
         </div>
     </div>
     <script>
-    let showSold = false;
+    // Sold logic removed
     function fetchProperties() {
         const minPrice = document.getElementById('minPrice').value;
         const maxPrice = document.getElementById('maxPrice').value;
-        const status = showSold ? 'sold' : document.getElementById('statusFilter').value;
+    const status = 'active';
         const sort = document.getElementById('sortOrder').value;
-        fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=${status}&sort=${sort}`)
+    fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=${status}&sort=${sort}`)
             .then(res => res.json())
             .then(data => {
                 renderProperties(data.properties);
@@ -224,8 +219,7 @@
         listings.forEach(listing => {
             let blocked = listing.source && window.blockedSources && window.blockedSources.includes(listing.source);
             let statusLabel = '';
-            if (listing.status === 'sold') statusLabel = '<span class="card-status" style="background:#fc5c7d">SOLD</span>';
-            else if (listing.status === 'unverified') statusLabel = '<span class="card-status" style="background:#ffd700;color:#222">UNVERIFIED</span>';
+            if (listing.status === 'unverified') statusLabel = '<span class="card-status" style="background:#ffd700;color:#222">UNVERIFIED</span>';
             else if (blocked) statusLabel = '<span class="card-status" style="background:#888">BLOCKED</span>';
 
             // Format price with thousands separator
@@ -238,7 +232,7 @@
 
             // Always show a clickable link if available
             let linkUrl = listing.link || listing.url || '#';
-            let linkHtml = linkUrl !== '#' ? `<a href="${linkUrl}" target="_blank">View Listing</a>` : '<span style="color:#ccc">No Link</span>';
+            let linkHtml = linkUrl && linkUrl !== '#' ? `<a href="${linkUrl}" target="_blank" style="font-size:1.1em;font-weight:600;color:#fff;text-decoration:underline;display:block;margin-top:10px;">🔗 View Listing</a>` : '<span style="color:#ccc">No Link</span>';
 
             container.innerHTML += `
                 <div class="card">
@@ -250,7 +244,7 @@
                         <span class="currency pound">£ ${priceGBP}</span>
                     </div>
                     <div class="card-agency">Agency: ${listing.agency || listing.source || ''}</div>
-                    <div class="card-link">${linkHtml}</div>
+                    ${linkHtml}
                 </div>
             `;
         });
@@ -262,7 +256,7 @@
                 document.getElementById('stats').innerHTML = `
                     <b>Total:</b> ${data.stats.total} | 
                     <b>Active:</b> ${data.stats.active} | 
-                    <b>Sold:</b> ${data.stats.sold} | 
+                    <!-- Sold stats removed -->
                     <b>Unverified:</b> ${data.stats.unverified} | 
                     <b>GBP Rate:</b> £${data.exchange_rate}
                 `;
@@ -273,7 +267,15 @@
     // Refresh listings by scraping and updating
     function refreshListings() {
         fetch('/api/scrape', {method:'POST'})
-            .then(() => { fetchProperties(); });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    fetchProperties();
+                } else {
+                    alert('Failed to refresh listings: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(() => alert('Failed to refresh listings.'));
     }
     function clearFilters() {
         document.getElementById('minPrice').value = 0;
