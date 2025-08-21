@@ -213,7 +213,7 @@ def fetch_all_properties():
     all_properties = []
     successful_sources = []
     fetch_funcs = [
-        # fetch_property24,  # Commented out to prevent blocking
+        # fetch_property24,  # Disabled to prevent blocking
         fetch_privateproperty,
         fetch_pamgolding,
         fetch_sahometraders

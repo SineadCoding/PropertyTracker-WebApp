@@ -128,26 +128,11 @@ class WebPropertyTracker:
     def scrape_properties(self):
         """Scrape properties using the property scraper"""
         try:
-            if self.scraper:
-                new_properties = self.scraper.scrape_all_sources()
-                # Filter out blocked sources
-                filtered_properties = [
-                    prop for prop in new_properties 
-                    if prop.source not in self.blocked_sources
-                ]
-                
-                # Merge with previous properties
-                self.properties = self.merge_properties(filtered_properties, self.previous_properties)
-                
-                # Save properties
-                self.save_properties()
-                
-                logger.info(f"Scraped {len(new_properties)} properties, {len(filtered_properties)} after filtering")
-                return len(filtered_properties)
-            else:
-                # Load from existing file if scraper not available
-                self.properties = self.previous_properties[:]
-                return len(self.properties)
+            from property_scraper import scrape_and_update_listings
+            scrape_and_update_listings()
+            self.load_previous_properties()
+            logger.info(f"Scraped and loaded properties from listings.json")
+            return len(self.properties)
         except Exception as e:
             logger.error(f"Error scraping properties: {e}")
             self.properties = self.previous_properties[:]
