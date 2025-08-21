@@ -241,17 +241,19 @@ def fetch_all_properties():
 def get_exchange_rate():
     # Example: scrape from exchangerate.host
     try:
-        resp = requests.get("https://api.exchangerate.host/latest?base=ZAR&symbols=GBP")
+        resp = requests.get("https://api.exchangerate.host/latest?base=ZAR&symbols=GBP", timeout=10)
         data = resp.json()
         if 'rates' in data and 'GBP' in data['rates']:
             rate = data['rates']['GBP']
             return rate
         else:
             print(f"[ERROR] Exchange rate fetch failed: 'rates' or 'GBP' missing in response: {data}")
-            return None
+            # Fallback rate
+            return 0.042
     except Exception as e:
         print(f"[ERROR] Exchange rate fetch failed: {e}")
-        return None
+        # Fallback rate
+        return 0.042
 
 def save_properties_to_json(properties, filename="listings.json"):
     # Deduplicate by link before saving
@@ -259,10 +261,20 @@ def save_properties_to_json(properties, filename="listings.json"):
     unique_properties = []
     for prop in properties:
         # Convert date to string if needed
-        if hasattr(prop, 'date') and isinstance(prop.date, (datetime,)):
-            prop.date = prop.date.isoformat()
-        elif isinstance(prop, dict) and 'date' in prop and isinstance(prop['date'], (datetime,)):
-            prop['date'] = prop['date'].isoformat()
+        if hasattr(prop, 'date'):
+            if isinstance(prop.date, datetime):
+                prop.date = prop.date.isoformat()
+            elif isinstance(prop.date, str):
+                pass
+            elif hasattr(prop.date, 'isoformat'):
+                prop.date = prop.date.isoformat()
+        elif isinstance(prop, dict) and 'date' in prop:
+            if isinstance(prop['date'], datetime):
+                prop['date'] = prop['date'].isoformat()
+            elif isinstance(prop['date'], str):
+                pass
+            elif hasattr(prop['date'], 'isoformat'):
+                prop['date'] = prop['date'].isoformat()
         link = prop['link'] if isinstance(prop, dict) else getattr(prop, 'link', None)
         if link and link not in seen_links:
             unique_properties.append(prop)
@@ -271,13 +283,23 @@ def save_properties_to_json(properties, filename="listings.json"):
     properties_dicts = []
     for prop in unique_properties:
         if isinstance(prop, dict):
-            if 'date' in prop and isinstance(prop['date'], (datetime,)):
-                prop['date'] = prop['date'].isoformat()
+            if 'date' in prop:
+                if isinstance(prop['date'], datetime):
+                    prop['date'] = prop['date'].isoformat()
+                elif isinstance(prop['date'], str):
+                    pass
+                elif hasattr(prop['date'], 'isoformat'):
+                    prop['date'] = prop['date'].isoformat()
             properties_dicts.append(prop)
         else:
             d = prop.__dict__.copy()
-            if 'date' in d and isinstance(d['date'], (datetime,)):
-                d['date'] = d['date'].isoformat()
+            if 'date' in d:
+                if isinstance(d['date'], datetime):
+                    d['date'] = d['date'].isoformat()
+                elif isinstance(d['date'], str):
+                    pass
+                elif hasattr(d['date'], 'isoformat'):
+                    d['date'] = d['date'].isoformat()
             properties_dicts.append(d)
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(properties_dicts, f, ensure_ascii=False, indent=2)
@@ -303,4 +325,4 @@ def scrape_and_update_listings():
                 prop.price_gbp = gbp_val
             elif isinstance(prop, dict):
                 prop['price_gbp'] = gbp_val
-    save_properties_to_json([prop.__dict__ if hasattr(prop, '__dict__') else prop for prop in properties])
+    save_properties_to_json(properties)
