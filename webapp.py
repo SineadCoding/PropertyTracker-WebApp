@@ -22,12 +22,6 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Import Property always, handle PropertyScraper separately
-try:
-    from property_scraper import PropertyScraper
-except ImportError as e:
-    logger.error(f"Import error: {e}")
-    PropertyScraper = None
 try:
     from models import Property
 except ImportError as e:
@@ -43,10 +37,6 @@ except ImportError as e:
             self.date = date
             for k, v in kwargs.items():
                 setattr(self, k, v)
-try:
-    from utils import get_exchange_rate, format_price_gbp
-except ImportError as e:
-    logger.error(f"Import error: {e}")
 
 class WebPropertyTracker:
     """Main web application class that replicates Android app functionality"""
@@ -61,13 +51,7 @@ class WebPropertyTracker:
         self.price_filter_min = 0
         self.price_filter_max = 1000000
         self.scraper = None
-        
-        # Initialize scraper if available
-        try:
-            self.scraper = PropertyScraper()
-        except:
-            logger.warning("PropertyScraper not available, using fallback")
-            
+        # Remove PropertyScraper logic
         # Load initial data
         self.load_previous_properties()
         self.load_blocked_sources()
@@ -121,22 +105,19 @@ class WebPropertyTracker:
             logger.error(f"Error saving blocked sources: {e}")
     
     def update_exchange_rate(self):
-        """Update EUR to GBP exchange rate"""
+        """Update ZAR to GBP exchange rate"""
         try:
-            if hasattr(self, 'get_exchange_rate'):
-                self.exchange_rate = get_exchange_rate()
+            # Use direct API call for ZAR to GBP
+            response = requests.get('https://api.exchangerate.host/latest?base=ZAR&symbols=GBP', timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                self.exchange_rate = data['rates'].get('GBP', 0.05)
             else:
-                # Fallback exchange rate
-                response = requests.get('https://api.exchangerate-api.com/v4/latest/EUR', timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    self.exchange_rate = data['rates'].get('GBP', 0.85)
-                else:
-                    self.exchange_rate = 0.85  # Fallback rate
-            logger.info(f"Updated exchange rate: 1 EUR = {self.exchange_rate:.4f} GBP")
+                self.exchange_rate = 0.05  # Fallback rate
+            logger.info(f"Updated exchange rate: 1 ZAR = {self.exchange_rate:.4f} GBP")
         except Exception as e:
             logger.error(f"Error updating exchange rate: {e}")
-            self.exchange_rate = 0.85  # Default fallback
+            self.exchange_rate = 0.05  # Default fallback
     
     def scrape_properties(self):
         """Scrape properties using the property scraper"""
@@ -205,6 +186,8 @@ class WebPropertyTracker:
             
             with open('listings.json', 'w', encoding='utf-8') as f:
                 json.dump(properties_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving properties: {e}")
     
     
     def get_filtered_properties(self) -> List:
