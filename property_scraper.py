@@ -95,15 +95,20 @@ def fetch_privateproperty():
     print(f"Found {len(cards)} property cards on PrivateProperty.")
 
     for listing in cards:
-        title_tag = listing.select_one(".listing-result__title")
+        href = listing.get("href")
+        link = "https://www.privateproperty.co.za" + href if href and href.startswith("/") else href or ""
+        detail_html = get_html(link)
+        if not detail_html:
+            continue
+        detail_soup = BeautifulSoup(detail_html, "html.parser")
+        title_tag = detail_soup.select_one(".property-title") or detail_soup.select_one(".listing-result__title")
         title = title_tag.text.strip() if title_tag else ""
         if not title or not any(k in title.lower() for k in ["industrial", "warehouse", "commercial", "space"]):
             continue
-        # Only include sales, not rentals
         if "rent" in title.lower():
             continue
-        price_tag = listing.select_one(".p24_price")
-        price_str = price_tag.contents[0].strip() if price_tag and price_tag.contents else ""
+        price_tag = detail_soup.select_one(".p24_price") or detail_soup.select_one(".property-price")
+        price_str = price_tag.text.strip() if price_tag else ""
         price_type = None
         if "per m" in price_str.lower():
             price_type = price_str
@@ -112,10 +117,10 @@ def fetch_privateproperty():
         else:
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
-        location = listing.select_one(".listing-result__desktop-suburb").text.strip() if listing.select_one(".listing-result__desktop-suburb") else "Garden Route"
-        agency = "Private Listing" if listing.select_one(".listing-result__listed-privately") else "Unknown Agency"
-        href = listing.get("href")
-        link = "https://www.privateproperty.co.za" + href if href and href.startswith("/") else href or ""
+        location_tag = detail_soup.select_one(".property-location") or detail_soup.select_one(".listing-result__desktop-suburb")
+        location = location_tag.text.strip() if location_tag else "Garden Route"
+        agency_tag = detail_soup.select_one(".listing-result__listed-privately")
+        agency = "Private Listing" if agency_tag else "Unknown Agency"
         print(f"Scraped (PrivateProperty): {title} | {location} | {price} | {agency} | {price_type}")
         prop = Property(title, price, location, agency, link, datetime.today().date())
         prop.source = source
@@ -137,10 +142,15 @@ def fetch_pamgolding():
     print(f"Found {len(cards)} property cards on Pam Golding.")
 
     for listing in cards:
-        full_title = listing.select_one(".pgp-description").text.strip() if listing.select_one(".pgp-description") else ""
+        href = listing.select_one("a").get("href") if listing.select_one("a") else ""
+        link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
+        detail_html = get_html(link)
+        if not detail_html:
+            continue
+        detail_soup = BeautifulSoup(detail_html, "html.parser")
+        full_title = detail_soup.select_one(".pgp-description").text.strip() if detail_soup.select_one(".pgp-description") else ""
         if not full_title or not any(k in full_title.lower() for k in ["industrial", "warehouse", "commercial"]):
             continue
-        # Only include sales, not rentals
         if "rent" in full_title.lower():
             continue
         title = full_title
@@ -149,7 +159,7 @@ def fetch_pamgolding():
             parts = full_title.rsplit(' for sale in ', 1)
             title = parts[0].strip()
             location = parts[1].strip()
-        price_tag = listing.select_one(".pgp-price")
+        price_tag = detail_soup.select_one(".pgp-price")
         price_str = price_tag.text.strip() if price_tag else ""
         price_type = None
         if "per m" in price_str.lower():
@@ -160,18 +170,16 @@ def fetch_pamgolding():
             price_digits = re.sub(r"[^\d]", "", price_str)
             price = int(price_digits) if price_digits else 0
         agency = "Pam Golding"
-        href = listing.select_one("a").get("href") if listing.select_one("a") else ""
-        link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
         print(f"Scraped (Pam Golding): {title} | {location} | {price} | {agency} | {price_type}")
         prop = Property(title, price, location, agency, link, datetime.today().date())
         prop.source = source
         if price_type:
             prop.price_type = price_type
         properties.append(prop)
-        if properties:
-            return properties, True
-        else:
-            return [], False
+    if properties:
+        return properties, True
+    else:
+        return [], False
 
 def fetch_sahometraders():
     source = "sahometraders"
@@ -189,20 +197,18 @@ def fetch_sahometraders():
         link_tag = listing.select_one("a")
         href = link_tag.get("href") if link_tag else ""
         link = "https://www.sahometraders.co.za" + href if href and href.startswith("/") else href or ""
-        title = link_tag.get("title", "").strip() if link_tag else ""
-
-        price_tag = listing.select_one(".p24_price")
-        price_str = price_tag.contents[0].strip() if price_tag and price_tag.contents else ""
+        detail_html = get_html(link)
+        if not detail_html:
+            continue
+        detail_soup = BeautifulSoup(detail_html, "html.parser")
+        title = detail_soup.select_one(".p24_propertyTitle").text.strip() if detail_soup.select_one(".p24_propertyTitle") else "No Title"
+        price_tag = detail_soup.select_one(".p24_price")
+        price_str = price_tag.text.strip() if price_tag else ""
         price_digits = re.sub(r"[^\d]", "", price_str)
         price = int(price_digits) if price_digits else 0
-
-        if not title:
-            title = listing.select_one(".p24_propertyTitle").text.strip() if listing.select_one(".p24_propertyTitle") else "No Title"
-
-        location = listing.select_one(".p24_location").text.strip() if listing.select_one(".p24_location") else ""
-        agency_tag = listing.select_one(".p24_branding img")
+        location = detail_soup.select_one(".p24_location").text.strip() if detail_soup.select_one(".p24_location") else ""
+        agency_tag = detail_soup.select_one(".p24_branding img")
         agency = agency_tag["alt"].strip() if agency_tag and agency_tag.get("alt") else "SAHometraders"
-
         print(f"Scraped (SAHometraders): {title} | {location} | {price} | {agency}")
         prop = Property(title, price, location, agency, link, datetime.today().date())
         prop.source = source
