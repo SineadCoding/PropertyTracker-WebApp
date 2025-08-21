@@ -99,19 +99,38 @@ def fetch_privateproperty():
         title = title_tag.text.strip() if title_tag else ""
         if not title or not any(k in title.lower() for k in ["industrial", "warehouse", "commercial", "space"]):
             continue
-
-        price_str = listing.select_one(".listing-result__price").text.strip() if listing.select_one(".listing-result__price") else ""
-        price_digits = re.sub(r"[^\d]", "", price_str)
-        price = int(price_digits) if price_digits else 0
-
+            # Only include sales, not rentals
+            if "rent" in title.lower():
+                continue
+            price_tag = listing.select_one(".p24_price")
+            price_str = price_tag.contents[0].strip() if price_tag and price_tag.contents else ""
+            price_type = None
+            if "per m" in price_str.lower():
+                price_type = price_str
+                price_digits = re.sub(r"[^\d]", "", price_str)
+                price = int(price_digits) if price_digits else 0
+            else:
+                price_digits = re.sub(r"[^\d]", "", price_str)
+                price = int(price_digits) if price_digits else 0
+        price_type = None
+        if "per m" in price_str.lower():
+            price_type = price_str
+            price_digits = re.sub(r"[^\d]", "", price_str)
+            price = int(price_digits) if price_digits else 0
+        else:
+            price_digits = re.sub(r"[^\d]", "", price_str)
+            price = int(price_digits) if price_digits else 0
         location = listing.select_one(".listing-result__desktop-suburb").text.strip() if listing.select_one(".listing-result__desktop-suburb") else "Garden Route"
         agency = "Private Listing" if listing.select_one(".listing-result__listed-privately") else "Unknown Agency"
         href = listing.get("href")
+            if price_type:
+                prop.price_type = price_type
         link = "https://www.privateproperty.co.za" + href if href and href.startswith("/") else href or ""
-
-        print(f"Scraped (PrivateProperty): {title} | {location} | {price} | {agency}")
+        print(f"Scraped (PrivateProperty): {title} | {location} | {price} | {agency} | {price_type}")
         prop = Property(title, price, location, agency, link, datetime.today().date())
         prop.source = source
+        if price_type:
+            prop.price_type = price_type
         properties.append(prop)
     return properties, True
 
@@ -127,35 +146,42 @@ def fetch_pamgolding():
     cards = soup.select("article.pgp-property__item")
     print(f"Found {len(cards)} property cards on Pam Golding.")
 
-    for listing in cards:
-        full_title = listing.select_one(".pgp-description").text.strip() if listing.select_one(".pgp-description") else ""
-        if not full_title or not any(k in full_title.lower() for k in ["industrial", "warehouse", "commercial"]):
-            continue
-
-        title = full_title
-        location = "Garden Route"
-        if ' for sale in ' in full_title:
-            parts = full_title.rsplit(' for sale in ', 1)
-            title = parts[0].strip()
-            location = parts[1].strip()
-
-        price_str = listing.select_one(".pgp-price").text.strip() if listing.select_one(".pgp-price") else ""
-        price_digits = re.sub(r"[^\d]", "", price_str)
-        price = int(price_digits) if price_digits else 0
-
-        agency = "Pam Golding"
-        href = listing.select_one("a").get("href") if listing.select_one("a") else ""
-        link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
-
-        print(f"Scraped (Pam Golding): {title} | {location} | {price} | {agency}")
-        prop = Property(title, price, location, agency, link, datetime.today().date())
-        prop.source = source
-        properties.append(prop)
-    # Only return True if we actually found listings
-    if properties:
-        return properties, True
-    else:
-        return [], False
+        for listing in cards:
+            full_title = listing.select_one(".pgp-description").text.strip() if listing.select_one(".pgp-description") else ""
+            if not full_title or not any(k in full_title.lower() for k in ["industrial", "warehouse", "commercial"]):
+                continue
+            # Only include sales, not rentals
+            if "rent" in full_title.lower():
+                continue
+            title = full_title
+            location = "Garden Route"
+            if ' for sale in ' in full_title:
+                parts = full_title.rsplit(' for sale in ', 1)
+                title = parts[0].strip()
+                location = parts[1].strip()
+            price_tag = listing.select_one(".pgp-price")
+            price_str = price_tag.text.strip() if price_tag else ""
+            price_type = None
+            if "per m" in price_str.lower():
+                price_type = price_str
+                price_digits = re.sub(r"[^\d]", "", price_str)
+                price = int(price_digits) if price_digits else 0
+            else:
+                price_digits = re.sub(r"[^\d]", "", price_str)
+                price = int(price_digits) if price_digits else 0
+            agency = "Pam Golding"
+            href = listing.select_one("a").get("href") if listing.select_one("a") else ""
+            link = "https://www.pamgolding.co.za" + href if href.startswith("/") else href
+            print(f"Scraped (Pam Golding): {title} | {location} | {price} | {agency} | {price_type}")
+            prop = Property(title, price, location, agency, link, datetime.today().date())
+            prop.source = source
+            if price_type:
+                prop.price_type = price_type
+            properties.append(prop)
+        if properties:
+            return properties, True
+        else:
+            return [], False
 
 def fetch_sahometraders():
     source = "sahometraders"

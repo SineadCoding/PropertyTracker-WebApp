@@ -153,6 +153,7 @@
                 <input type="number" id="maxPrice" value="10000000">
                 <label>Sort By:</label>
                 <select id="sortBy">
+                    <option value="" disabled selected>Sort by</option>
                     <option value="price_asc">Price Low-High</option>
                     <option value="price_desc">Price High-Low</option>
                     <option value="az">A-Z</option>
@@ -160,6 +161,7 @@
                 </select>
             </div>
             <button id="refreshBtn">Refresh</button>
+            <button id="filterBtn">Filter</button>
         </div>
         <div class="listings-title">Current Listings</div>
         <div class="cards" id="propertyCards">
@@ -209,7 +211,10 @@
             });
     };
     document.getElementById('sortBy').onchange = function() {
+    fetchProperties();
+    document.getElementById('filterBtn').onclick = function() {
         fetchProperties();
+    };
     };
     // Initial load
     fetchProperties();
