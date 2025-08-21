@@ -107,11 +107,13 @@ class WebPropertyTracker:
     def update_exchange_rate(self):
         """Update ZAR to GBP exchange rate"""
         try:
-            # Use direct API call for ZAR to GBP
             response = requests.get('https://api.exchangerate.host/latest?base=ZAR&symbols=GBP', timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                self.exchange_rate = data['rates'].get('GBP', 0.05)
+                if 'rates' in data and 'GBP' in data['rates']:
+                    self.exchange_rate = data['rates']['GBP']
+                else:
+                    self.exchange_rate = 0.05  # Fallback rate
             else:
                 self.exchange_rate = 0.05  # Fallback rate
             logger.info(f"Updated exchange rate: 1 ZAR = {self.exchange_rate:.4f} GBP")
@@ -333,18 +335,25 @@ def refresh_data():
     try:
         from property_scraper import scrape_and_update_listings
         scrape_and_update_listings()
-        tracker.load_previous_properties()
+        tracker.load_previous_properties()  # Reloads updated listings.json
         tracker.update_exchange_rate()
+        # After scraping and loading, return updated properties
+        properties = tracker.get_filtered_properties()
+        properties_dict = [tracker.property_to_dict(prop) for prop in properties]
         return jsonify({
             'success': True,
             'message': 'Data refreshed successfully',
-            'exchange_rate': tracker.exchange_rate
+            'exchange_rate': tracker.exchange_rate,
+            'properties': properties_dict,
+            'count': len(properties_dict)
         })
     except Exception as e:
         logger.error(f"Error refreshing data: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'properties': [],
+            'count': 0
         })
 
 @app.route('/api/block_source', methods=['POST'])
