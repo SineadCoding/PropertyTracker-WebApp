@@ -189,12 +189,7 @@ class WebPropertyTracker:
                 prop.first_seen = datetime.now().isoformat()
                 prop.last_seen = datetime.now().isoformat()
                 merged[key] = prop
-        
-    # Remove sold marking logic
-    # Only keep active properties
-        
-        return list(merged.values())
-    
+        # Import Property always
     def save_properties(self):
         """Save properties to JSON file"""
         try:
@@ -210,24 +205,20 @@ class WebPropertyTracker:
             
             with open('listings.json', 'w', encoding='utf-8') as f:
                 json.dump(properties_data, f, ensure_ascii=False, indent=2)
-            logger.info(f"Saved {len(properties_data)} properties")
-        except Exception as e:
-            logger.error(f"Error saving properties: {e}")
+    
     
     def get_filtered_properties(self) -> List:
         """Get properties filtered by current settings"""
         filtered = self.properties[:]
-        # Filter by price range (convert to EUR if needed)
+        # Filter by price range
         price_filtered = []
         for prop in filtered:
             try:
-                price = float(getattr(prop, 'price', 0)) if getattr(prop, 'price', None) else 0
-                if hasattr(prop, 'currency') and getattr(prop, 'currency', None) == "GBP":
-                    price = price / self.exchange_rate  # Convert GBP to EUR for comparison
+                price = float(getattr(prop, 'price', 0) or 0)
                 if self.price_filter_min <= price <= self.price_filter_max:
                     price_filtered.append(prop)
             except (ValueError, TypeError):
-                price_filtered.append(prop)  # Include if price parsing fails
+                continue
         filtered = price_filtered
         # Sort properties
         sort_type = self.current_sort
