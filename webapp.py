@@ -230,22 +230,15 @@ class WebPropertyTracker:
                 price_filtered.append(prop)  # Include if price parsing fails
         filtered = price_filtered
         # Sort properties
-        if self.current_sort == "price_asc":
+        sort_type = self.current_sort
+        if sort_type == "price_asc":
             filtered.sort(key=lambda p: float(getattr(p, 'price', 0) or 0))
-        elif self.current_sort == "price_desc":
+        elif sort_type == "price_desc":
             filtered.sort(key=lambda p: float(getattr(p, 'price', 0) or 0), reverse=True)
-        elif self.current_sort == "bedrooms_asc":
-            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0) or 0))
-        elif self.current_sort == "bedrooms_desc":
-            filtered.sort(key=lambda p: int(getattr(p, 'bedrooms', 0) or 0), reverse=True)
-        elif self.current_sort == "area_asc":
-            filtered.sort(key=lambda p: float(getattr(p, 'area', 0) or 0))
-        elif self.current_sort == "area_desc":
-            filtered.sort(key=lambda p: float(getattr(p, 'area', 0) or 0), reverse=True)
-        elif self.current_sort == "date_asc":
-            filtered.sort(key=lambda p: getattr(p, 'first_seen', '') or getattr(p, 'date', ''))
-        elif self.current_sort == "date_desc":
-            filtered.sort(key=lambda p: getattr(p, 'first_seen', '') or getattr(p, 'date', ''), reverse=True)
+        elif sort_type == "az":
+            filtered.sort(key=lambda p: str(getattr(p, 'title', getattr(p, 'location', getattr(p, 'address', '')))).lower())
+        elif sort_type == "za":
+            filtered.sort(key=lambda p: str(getattr(p, 'title', getattr(p, 'location', getattr(p, 'address', '')))).lower(), reverse=True)
         return filtered
     
     def get_property_stats(self) -> Dict[str, int]:
@@ -364,8 +357,10 @@ def scrape_properties():
 def refresh_data():
     """Refresh exchange rate and reload data"""
     try:
-        tracker.update_exchange_rate()
+        from property_scraper import scrape_and_update_listings
+        scrape_and_update_listings()
         tracker.load_previous_properties()
+        tracker.update_exchange_rate()
         return jsonify({
             'success': True,
             'message': 'Data refreshed successfully',

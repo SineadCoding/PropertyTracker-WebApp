@@ -197,7 +197,7 @@ def fetch_all_properties():
     all_properties = []
     successful_sources = []
     fetch_funcs = [
-        fetch_property24,
+        # fetch_property24,  # Commented out to prevent blocking
         fetch_privateproperty,
         fetch_pamgolding,
         fetch_sahometraders
@@ -241,19 +241,22 @@ def save_properties_to_json(properties, filename="listings.json"):
 def scrape_and_update_listings():
     properties, _ = fetch_all_properties()
     rate = get_exchange_rate()
-    if rate:
-        for prop in properties:
-            # Add price_gbp to each property
-            price_val = None
-            if hasattr(prop, 'price') and prop.price:
+    for prop in properties:
+        price_val = None
+        if hasattr(prop, 'price') and prop.price:
+            try:
                 price_val = float(prop.price)
-            elif isinstance(prop, dict) and 'price' in prop and prop['price']:
+            except Exception:
+                price_val = None
+        elif isinstance(prop, dict) and 'price' in prop and prop['price']:
+            try:
                 price_val = float(prop['price'])
-            if price_val is not None:
-                # Convert ZAR to GBP using the exchange rate
-                gbp_val = round(price_val * rate, 2)
-                if hasattr(prop, 'price_gbp'):
-                    prop.price_gbp = gbp_val
-                elif isinstance(prop, dict):
-                    prop['price_gbp'] = gbp_val
+            except Exception:
+                price_val = None
+        if price_val is not None and rate:
+            gbp_val = round(price_val * rate, 2)
+            if hasattr(prop, '__dict__'):
+                prop.price_gbp = gbp_val
+            elif isinstance(prop, dict):
+                prop['price_gbp'] = gbp_val
     save_properties_to_json([prop.__dict__ if hasattr(prop, '__dict__') else prop for prop in properties])

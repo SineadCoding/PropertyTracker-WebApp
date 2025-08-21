@@ -151,6 +151,13 @@
                 <input type="number" id="minPrice" value="0">
                 <label>Max Price:</label>
                 <input type="number" id="maxPrice" value="10000000">
+                <label>Sort By:</label>
+                <select id="sortBy">
+                    <option value="price_asc">Price Low-High</option>
+                    <option value="price_desc">Price High-Low</option>
+                    <option value="az">A-Z</option>
+                    <option value="za">Z-A</option>
+                </select>
             </div>
             <button id="refreshBtn">Refresh</button>
         </div>
@@ -167,7 +174,8 @@
     function fetchProperties() {
         const minPrice = document.getElementById('minPrice').value;
         const maxPrice = document.getElementById('maxPrice').value;
-        fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=active`)
+        const sortBy = document.getElementById('sortBy').value;
+        fetch(`/api/properties?min_price=${minPrice}&max_price=${maxPrice}&filter=active&sort=${sortBy}`)
             .then(res => res.json())
             .then(data => {
                 renderProperties(data.properties);
@@ -199,6 +207,9 @@
             .then(data => {
                 fetchProperties();
             });
+    };
+    document.getElementById('sortBy').onchange = function() {
+        fetchProperties();
     };
     // Initial load
     fetchProperties();
