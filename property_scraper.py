@@ -250,9 +250,17 @@ def get_exchange_rate():
         return None
 
 def save_properties_to_json(properties, filename="listings.json"):
-    properties_dicts = [prop for prop in properties]
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(properties_dicts, f, ensure_ascii=False, indent=2)
+        # Deduplicate by link before saving
+        seen_links = set()
+        unique_properties = []
+        for prop in properties:
+            link = prop['link'] if isinstance(prop, dict) else getattr(prop, 'link', None)
+            if link and link not in seen_links:
+                unique_properties.append(prop)
+                seen_links.add(link)
+        properties_dicts = [prop if isinstance(prop, dict) else prop.__dict__ for prop in unique_properties]
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(properties_dicts, f, ensure_ascii=False, indent=2)
 
 def scrape_and_update_listings():
     properties, _ = fetch_all_properties()

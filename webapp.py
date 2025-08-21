@@ -65,21 +65,25 @@ class WebPropertyTracker:
                     data = json.load(f)
                     self.previous_properties = []
                     self.properties = []
+                    seen_links = set()
                     for prop_data in data:
-                        try:
-                            prop = Property(**prop_data)
-                        except TypeError:
-                            # fallback for incomplete data
-                            prop = Property(
-                                prop_data.get('title', ''),
-                                prop_data.get('price', 0),
-                                prop_data.get('location', ''),
-                                prop_data.get('agency', ''),
-                                prop_data.get('link', ''),
-                                prop_data.get('date', '')
-                            )
-                        self.previous_properties.append(prop)
-                        self.properties.append(prop)
+                        link = prop_data.get('link', None)
+                        if link and link not in seen_links:
+                            try:
+                                prop = Property(**prop_data)
+                            except TypeError:
+                                # fallback for incomplete data
+                                prop = Property(
+                                    prop_data.get('title', ''),
+                                    prop_data.get('price', 0),
+                                    prop_data.get('location', ''),
+                                    prop_data.get('agency', ''),
+                                    prop_data.get('link', ''),
+                                    prop_data.get('date', '')
+                                )
+                            self.previous_properties.append(prop)
+                            self.properties.append(prop)
+                            seen_links.add(link)
                 logger.info(f"Loaded {len(self.properties)} properties from listings.json")
         except Exception as e:
             logger.error(f"Error loading previous properties: {e}")
@@ -187,7 +191,15 @@ class WebPropertyTracker:
                 properties_data.append(prop_dict)
             
             with open('listings.json', 'w', encoding='utf-8') as f:
-                json.dump(properties_data, f, ensure_ascii=False, indent=2)
+                # Deduplicate before saving
+                seen_links = set()
+                unique_properties_data = []
+                for prop_dict in properties_data:
+                    link = prop_dict.get('link', None)
+                    if link and link not in seen_links:
+                        unique_properties_data.append(prop_dict)
+                        seen_links.add(link)
+                json.dump(unique_properties_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"Error saving properties: {e}")
     
