@@ -226,7 +226,7 @@ class WebPropertyTracker:
         return stats
     
     def property_to_dict(self, prop) -> Dict[str, Any]:
-        """Convert property object to dictionary"""
+        """Convert property object to dictionary and calculate GBP price"""
         prop_dict = {
             'title': getattr(prop, 'title', getattr(prop, 'address', getattr(prop, 'location', ''))),
             'location': getattr(prop, 'location', getattr(prop, 'address', '')),
@@ -237,17 +237,13 @@ class WebPropertyTracker:
             'date': getattr(prop, 'date', getattr(prop, 'first_seen', '')),
             'status': getattr(prop, 'status', 'active'),
         }
-        # Add GBP price if currency is EUR
-        currency = getattr(prop, 'currency', 'ZAR')
-        if currency == 'EUR' and prop_dict['price']:
-            try:
-                eur_price = float(prop_dict['price'])
-                gbp_price = eur_price * self.exchange_rate
-                prop_dict['price_gbp'] = f"{gbp_price:,.0f}"
-            except (ValueError, TypeError):
-                prop_dict['price_gbp'] = ''
-        else:
-            prop_dict['price_gbp'] = prop_dict['price']
+        # Always convert ZAR price to GBP using latest exchange rate
+        try:
+            price_zar = float(prop_dict['price']) if prop_dict['price'] else 0
+            gbp_price = price_zar * self.exchange_rate
+            prop_dict['price_gbp'] = round(gbp_price, 2) if gbp_price else ''
+        except (ValueError, TypeError):
+            prop_dict['price_gbp'] = ''
         return prop_dict
 
 # Initialize the tracker
