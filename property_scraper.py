@@ -156,7 +156,11 @@ def fetch_pamgolding():
             if not detail_html:
                 continue
             detail_soup = BeautifulSoup(detail_html, "html.parser")
-            full_title = detail_soup.select_one(".pgp-description").text.strip() if detail_soup.select_one(".pgp-description") else ""
+            # Try updated selectors for Pam Golding
+            full_title = detail_soup.select_one(".pgp-description")
+            if not full_title:
+                full_title = detail_soup.select_one(".property-title")
+            full_title = full_title.text.strip() if full_title else ""
             if not full_title or not any(k in full_title.lower() for k in ["industrial", "warehouse", "commercial"]):
                 continue
             if "rent" in full_title.lower():
@@ -168,6 +172,8 @@ def fetch_pamgolding():
                 title = parts[0].strip()
                 location = parts[1].strip()
             price_tag = detail_soup.select_one(".pgp-price")
+            if not price_tag:
+                price_tag = detail_soup.select_one(".property-price")
             price_str = price_tag.text.strip() if price_tag else ""
             price_type = None
             if "per m" in price_str.lower():
@@ -235,7 +241,7 @@ def fetch_all_properties():
         # fetch_property24,  # Disabled to prevent blocking
         fetch_privateproperty,
         fetch_pamgolding,
-        fetch_sahometraders
+        # fetch_sahometraders  # Commented out as requested
     ]
     for fetch_func in fetch_funcs:
         try:
