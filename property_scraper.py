@@ -128,9 +128,11 @@ def fetch_privateproperty():
             price = int(re.sub(r"[^\d]", "", price_match.group(1))) if price_match else 0
             if price == 0:
                 continue  # Skip listings with no price
-            # Clean up title: remove price and area info
-            title = re.sub(r"R\s*[\d\s,]+", "", text).strip()
-            title = re.sub(r"\d+\s*m²", "", title).strip()
+            # Clean up title: remove price, area info, and extra whitespace
+            title = re.sub(r"R\s*[\d\s,]+", "", text)
+            title = re.sub(r"\d+\s*m²", "", title)
+            title = re.sub(r"Industrial space", "", title, flags=re.IGNORECASE)
+            title = re.sub(r"\s+", " ", title).strip()
             title = title[:80] if title else "Commercial Property"
             # Try to extract location from link or text
             location_match = re.search(r"/garden-route/([a-zA-Z0-9-]+)/", href)
@@ -146,7 +148,9 @@ def fetch_privateproperty():
                 "source": source,
                 "status": "active"
             }
-            properties.append(prop)
+            # Only add if title and location are not empty and link is a property detail
+            if title and location and link:
+                properties.append(prop)
     print(f"PrivateProperty: Found {len(properties)} property cards.")
     if properties:
         print(f"PrivateProperty: First property: {properties[0]}")
