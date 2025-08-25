@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "title": "210 m&sup2; commercial industrial property for sale in Knysna Industrial",
+    "price": 2950000,
+    "location": "Garden Route",
+    "agency": "Pam Golding",
+    "link": "https://www.pamgolding.co.za/property-details/210-m2-commercial-industrial-property-for-sale-knysna-industrial/1kg1689221",
+    "date": "2025-08-25",
+    "source": "pamgolding",
+    "status": "active",
+    "price_gbp": 125183.25
+  },
+  {
+    "title": "1000 m&sup2; commercial industrial property for sale in Dysselsdorp",
+    "price": 2900000,
+    "location": "Garden Route",
+    "agency": "Pam Golding",
+    "link": "https://www.pamgolding.co.za/property-details/1000-m2-commercial-industrial-property-for-sale-dysselsdorp/1ou1660094",
+    "date": "2025-08-25",
+    "source": "pamgolding",
+    "status": "active",
+    "price_gbp": 123061.5
+  }
+]
