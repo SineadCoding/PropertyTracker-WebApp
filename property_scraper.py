@@ -111,7 +111,7 @@ def fetch_property24():
 
 def fetch_privateproperty():
     source = "privateproperty"
-    url = "https://www.privateproperty.co.za/commercial-sales/western-cape/garden-route"
+    url = "https://www.privateproperty.co.za/commercial-sales/western-cape/garden-route/52?pt=6"
     html = get_html(url)
     if not html:
         return [], False
@@ -196,7 +196,7 @@ def fetch_pamgolding():
 
 def fetch_sahometraders():
     source = "sahometraders"
-    url = "https://www.sahometraders.co.za/industrial-property-for-sale/garden-route-western-cape/"
+    url = "https://www.sahometraders.co.za/industrial-property-for-sale-in-garden-route-as1"
     html = get_html(url)
     if not html:
         return [], False
@@ -233,15 +233,18 @@ def fetch_sahometraders():
             properties.append(prop)
         except Exception as e:
             print(f"SAHometraders: Error parsing card: {e}")
-    if properties:
-        print(f"SAHometraders: First property: {properties[0]}")
-    return properties, True
 
+# Currency exchange scraping
 
 def fetch_all_properties():
+    fetch_funcs = [
+        fetch_property24,
+        fetch_privateproperty,
+        fetch_pamgolding,
+        fetch_sahometraders
+    ]
     all_properties = []
     successful_sources = []
-    fetch_funcs = [fetch_property24, fetch_privateproperty, fetch_pamgolding, fetch_sahometraders]
     for fetch_func in fetch_funcs:
         try:
             props, success = fetch_func()
@@ -260,7 +263,6 @@ def fetch_all_properties():
             deduped_properties.append(prop)
             seen_links.add(link)
     return deduped_properties, successful_sources
-# Currency exchange scraping
 def get_exchange_rate():
     # Example: scrape from exchangerate.host
     try:
