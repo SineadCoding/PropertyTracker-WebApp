@@ -6,6 +6,89 @@ import random
 import time
 import json
 from models import Property
+
+import os
+LISTINGS_FILE = "listings.json"
+UNVERIFIED_LIMIT = 3
+
+def property_to_dict(prop):
+    return {
+        "title": prop.get("title", "") if isinstance(prop, dict) else getattr(prop, "title", ""),
+        "location": prop.get("location", "") if isinstance(prop, dict) else getattr(prop, "location", ""),
+        "price": prop.get("price", 0) if isinstance(prop, dict) else getattr(prop, "price", 0),
+        "agency": prop.get("agency", "") if isinstance(prop, dict) else getattr(prop, "agency", ""),
+        "link": prop.get("link", "") if isinstance(prop, dict) else getattr(prop, "link", ""),
+        "date": str(prop.get("date", "")) if isinstance(prop, dict) else str(getattr(prop, "date", "")),
+        "source": prop.get("source", "unknown") if isinstance(prop, dict) else getattr(prop, "source", "unknown"),
+        "sold": prop.get("sold", False) if isinstance(prop, dict) else getattr(prop, "sold", False),
+        "status": prop.get("status", "active") if isinstance(prop, dict) else getattr(prop, "status", "active"),
+        "missing_count": prop.get("missing_count", 0) if isinstance(prop, dict) else getattr(prop, "missing_count", 0)
+    }
+
+def dict_to_property(d):
+    date_val = d.get("date", "")
+    if isinstance(date_val, str) and date_val:
+        try:
+            date_val = datetime.fromisoformat(date_val).date()
+        except Exception:
+            pass
+    p = dict(d)
+    p["date"] = date_val
+    return p
+
+def load_previous_properties():
+    if not os.path.exists(LISTINGS_FILE):
+        return []
+    with open(LISTINGS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return [dict_to_property(d) for d in data]
+
+def save_properties(properties):
+    with open(LISTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump([property_to_dict(p) for p in properties], f, indent=2, ensure_ascii=False)
+
+def merge_properties(new_props, old_props, successful_sources):
+    new_by_source = {}
+    for p in new_props:
+        new_by_source.setdefault(p.get("source", "unknown"), {})[p["link"]] = p
+
+    old_by_source = {}
+    for p in old_props:
+        old_by_source.setdefault(p.get("source", "unknown"), {})[p["link"]] = p
+
+    merged = []
+
+    for source in successful_sources:
+        new_links = set(new_by_source.get(source, {}))
+        old_links = set(old_by_source.get(source, {}))
+
+        # Listings found in new scrape: reset status
+        for link, p in new_by_source.get(source, {}).items():
+            p["sold"] = False
+            p["status"] = "active"
+            p["missing_count"] = 0
+            merged.append(p)
+
+        # Listings missing from new scrape: increment missing_count
+        for link in old_links - new_links:
+            old = old_by_source[source][link]
+            old["missing_count"] = old.get("missing_count", 0) + 1
+            if old["missing_count"] >= UNVERIFIED_LIMIT:
+                old["sold"] = True
+                old["status"] = "sold"
+            else:
+                old["sold"] = False
+                old["status"] = "unverified"
+            merged.append(old)
+
+    # Listings from sources not scraped this time: keep as is
+    for source in old_by_source:
+        if source not in successful_sources:
+            for link, p in old_by_source[source].items():
+                if not any((x["link"] == p["link"] and x.get("source", "unknown") == p.get("source", "unknown")) for x in merged):
+                    merged.append(p)
+
+    return merged
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -86,7 +169,14 @@ def fetch_property24():
             parent = a.parent
             text = parent.get_text(" ", strip=True) if parent else a.get_text(strip=True)
             price_match = re.search(r"R\s*([\d\s,]+)", text)
-            price = int(re.sub(r"[^\d]", "", price_match.group(1))) if price_match else 0
+            if price_match:
+                price_str = re.sub(r"[^\d]", "", price_match.group(1))
+                try:
+                    price = int(price_str) if price_str else 0
+                except Exception:
+                    price = 0
+            else:
+                price = 0
             title_match = re.search(r"Industrial Property.*", text)
             title = title_match.group(0) if title_match else text[:50]
             location_match = re.search(r"in ([A-Za-z\s]+)", text)
@@ -242,23 +332,26 @@ def fetch_sahometraders():
 # Currency exchange scraping
 
 def fetch_all_properties():
+    # Only enable PrivateProperty scraping
     fetch_funcs = [
-        fetch_property24,
-        fetch_privateproperty,
-        fetch_pamgolding,
-        fetch_sahometraders
+        #(fetch_property24, "property24"),
+        (fetch_privateproperty, "privateproperty"),
+        #(fetch_pamgolding, "pamgolding"),
+        #(fetch_sahometraders, "sahometraders")
     ]
     all_properties = []
     successful_sources = []
-    for fetch_func in fetch_funcs:
+    for fetch_func, source_name in fetch_funcs:
         try:
             props, success = fetch_func()
-            print(f"{fetch_func.__name__}: Found {len(props)} properties.")
+            print(f"{source_name}: Found {len(props)} properties.")
+            for p in props:
+                p["source"] = source_name
             if success and props:
                 all_properties.extend(props)
-                successful_sources.append(fetch_func.__name__)
+                successful_sources.append(source_name)
         except Exception as e:
-            print(f"Error running {fetch_func.__name__}: {e}")
+            print(f"Error running {source_name}: {e}")
     # Deduplicate by 'link'
     seen_links = set()
     deduped_properties = []
@@ -283,36 +376,29 @@ def get_exchange_rate():
         return 0.042
 
 def save_properties_to_json(properties, filename="listings.json"):
-    # Deduplicate by link before saving
-    seen_links = set()
-    unique_properties = []
-    for prop in properties:
-        link = prop['link'] if isinstance(prop, dict) else getattr(prop, 'link', None)
-        if link and link not in seen_links:
-            unique_properties.append(prop)
-            seen_links.add(link)
-    print(f"Saving {len(unique_properties)} properties to {filename}")
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(unique_properties, f, ensure_ascii=False, indent=2)
-    print(f"Saved {len(unique_properties)} properties to {filename}")
+    pass  # replaced by save_properties()
 
 def scrape_and_update_listings():
-    properties, sources = fetch_all_properties()
-    print(f"Scraped {len(properties)} properties from sources: {sources}")
-    if not properties:
+    old_props = load_previous_properties()
+    new_props, successful_sources = fetch_all_properties()
+    print(f"Scraped {len(new_props)} properties from sources: {successful_sources}")
+    if not new_props:
         print("No properties found. listings.json will remain empty.")
+        save_properties([])
+        return
     rate = get_exchange_rate()
-    for prop in properties:
+    for prop in new_props:
         price_val = None
-        if isinstance(prop, dict) and 'price' in prop and prop['price']:
+        if 'price' in prop and prop['price']:
             try:
                 price_val = float(prop['price'])
             except Exception:
                 price_val = None
         if price_val is not None and rate:
             prop['price_gbp'] = round(price_val * rate, 2)
-    save_properties_to_json(properties)
-    print(f"Saved {len(properties)} properties to listings.json.")
+    merged = merge_properties(new_props, old_props, successful_sources)
+    save_properties(merged)
+    print(f"Saved {len(merged)} properties to listings.json.")
 
 if __name__ == "__main__":
     print("Starting property scraper main block...")
