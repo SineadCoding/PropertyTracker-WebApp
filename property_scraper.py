@@ -75,65 +75,23 @@ def fetch_property24():
         return [], False
     soup = BeautifulSoup(html, "html.parser")
     properties = []
-    # Updated selector for Property24 (based on provided HTML)
-    cards = soup.find_all("div", class_="p24_tileContainer")
-    print(f"Property24: Found {len(cards)} property cards.")
-    for card in cards:
-        try:
-            link_tag = card.find("a", class_="p24_content")
-            link = "https://www.property24.com" + link_tag["href"] if link_tag and link_tag.get("href") else ""
-            price_tag = card.find("span", class_="p24_price")
-            price_str = price_tag.get_text(strip=True) if price_tag else ""
-            price_digits = re.sub(r"[^\d]", "", price_str)
-            price = int(price_digits) if price_digits else 0
-            title = card.find("span", class_="p24_title")
-            title = title.get_text(strip=True) if title else ""
-            location = card.find("span", class_="p24_location")
-            location = location.get_text(strip=True) if location else ""
-            agency_tag = card.find("span", class_="p24_branding")
-            agency = agency_tag.get("title", "Property24") if agency_tag else "Property24"
-            prop = {
-                    "title": title,
-                    "price": price,
-                    "location": location,
-                    "agency": agency,
-                    "link": link,
-                    "date": str(datetime.today().date()),
-                    "source": source,
-                    "status": "active"
-            }
-            properties.append(prop)
-        except Exception as e:
-            print(f"Property24: Error parsing card: {e}")
-    if properties:
-        print(f"Property24: First property: {properties[0]}")
-    return properties, True
-
-def fetch_privateproperty():
-    source = "privateproperty"
-    url = "https://www.privateproperty.co.za/commercial-sales/western-cape/garden-route/52?pt=6"
-    html = get_html(url)
-    if not html:
-        return [], False
-    soup = BeautifulSoup(html, "html.parser")
-    # Updated selector for PrivateProperty (based on provided HTML)
-    cards = soup.find_all("div", class_="listing-card")
-    print(f"PrivateProperty: Found {len(cards)} property cards (may include non-listings).")
+    # Updated selector and parsing for Property24
     properties = []
-    for card in cards:
-        try:
-            title_tag = card.find("span", class_="listing-title")
-            title = title_tag.get_text(strip=True) if title_tag else ""
-            price_tag = card.find("span", class_="listing-price")
-            price_str = price_tag.get_text(strip=True) if price_tag else ""
-            price_digits = re.sub(r"[^\d]", "", price_str)
-            price = int(price_digits) if price_digits else 0
-            location_tag = card.find("span", class_="listing-location")
-            location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
-            agency = "PrivateProperty"
-            link_tag = card.find("a")
-            href = link_tag.get("href") if link_tag else ""
-            link = "https://www.privateproperty.co.za" + href if href and href.startswith("/") else href or ""
+    anchors = soup.find_all("a", href=True)
+    for a in anchors:
+        href = a["href"]
+        if href.startswith("/for-sale/"):
+            link = "https://www.property24.com" + href
+            # Try to get price and title from surrounding text
+            parent = a.parent
+            text = parent.get_text(" ", strip=True) if parent else a.get_text(strip=True)
+            price_match = re.search(r"R\s*([\d\s,]+)", text)
+            price = int(re.sub(r"[^\d]", "", price_match.group(1))) if price_match else 0
+            title_match = re.search(r"Industrial Property.*", text)
+            title = title_match.group(0) if title_match else text[:50]
+            location_match = re.search(r"in ([A-Za-z\s]+)", text)
+            location = location_match.group(1).strip() if location_match else "Garden Route"
+            agency = "Property24"
             prop = {
                 "title": title,
                 "price": price,
@@ -145,8 +103,51 @@ def fetch_privateproperty():
                 "status": "active"
             }
             properties.append(prop)
-        except Exception as e:
-            print(f"PrivateProperty: Error parsing card: {e}")
+    print(f"Property24: Found {len(properties)} property cards.")
+    if properties:
+        print(f"Property24: First property: {properties[0]}")
+    return properties, True
+
+def fetch_privateproperty():
+    source = "privateproperty"
+    url = "https://www.privateproperty.co.za/commercial-sales/western-cape/garden-route/52?pt=6"
+    html = get_html(url)
+    if not html:
+        return [], False
+    soup = BeautifulSoup(html, "html.parser")
+    # Updated selector and parsing for PrivateProperty
+    properties = []
+    anchors = soup.find_all("a", href=True)
+    for a in anchors:
+        href = a["href"]
+        # Only include property detail pages, not navigation/area links
+        if "/commercial-sales/" in href and re.search(r"/T\d+$", href):
+            link = "https://www.privateproperty.co.za" + href if href.startswith("/") else href
+            text = a.get_text(" ", strip=True)
+            price_match = re.search(r"R\s*([\d\s,]+)", text)
+            price = int(re.sub(r"[^\d]", "", price_match.group(1))) if price_match else 0
+            if price == 0:
+                continue  # Skip listings with no price
+            # Clean up title: remove price and area info
+            title = re.sub(r"R\s*[\d\s,]+", "", text).strip()
+            title = re.sub(r"\d+\s*m²", "", title).strip()
+            title = title[:80] if title else "Commercial Property"
+            # Try to extract location from link or text
+            location_match = re.search(r"/garden-route/([a-zA-Z0-9-]+)/", href)
+            location = location_match.group(1).replace("-", " ").title() if location_match else "Garden Route"
+            agency = "PrivateProperty"
+            prop = {
+                "title": title,
+                "price": price,
+                "location": location,
+                "agency": agency,
+                "link": link,
+                "date": str(datetime.today().date()),
+                "source": source,
+                "status": "active"
+            }
+            properties.append(prop)
+    print(f"PrivateProperty: Found {len(properties)} property cards.")
     if properties:
         print(f"PrivateProperty: First property: {properties[0]}")
     return properties, True
