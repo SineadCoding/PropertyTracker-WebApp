@@ -152,34 +152,32 @@ def get_html(url):
 
 def fetch_property24():
     source = "property24"
-    base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
+    urls = [
+        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9",
+        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p2",
+        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p3",
+        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p4",
+    ]
     properties = []
-    seen_first_links = set()
-    page_num = 1
-    while True:
-        url = base_url if page_num == 1 else f"{base_url}/p{page_num}"
-        print(f"Scraping Property24 page {page_num}: {url}")
+    seen_links = set()
+    for url in urls:
+        print(f"Scraping Property24: {url}")
         html = get_html(url)
         if not html:
-            print(f"[INFO] No HTML returned for page {page_num}, stopping pagination.")
-            break
+            print(f"[INFO] No HTML returned for {url}, skipping.")
+            continue
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.find_all("a", class_="p24_content")
         if not cards:
-            print(f"[INFO] No property cards found on page {page_num}, stopping pagination.")
-            break
-        # Detect duplicate pages (Property24 returns last page again if you go too far)
-        first_card = cards[0]
-        link_tag = first_card.find("a", href=True)
-        first_link = "https://www.property24.com" + (link_tag["href"] if link_tag else first_card["href"])
-        if first_link in seen_first_links:
-            print(f"[INFO] First listing on page {page_num} has already been seen. Reached last page. Stopping.")
-            break
-        seen_first_links.add(first_link)
+            print(f"[INFO] No property cards found for {url}, skipping.")
+            continue
         for card in cards:
             try:
                 link_tag = card.find("a", href=True)
                 link = "https://www.property24.com" + (link_tag["href"] if link_tag else card["href"])
+                if link in seen_links:
+                    continue  # Skip duplicates
+                seen_links.add(link)
                 price_tag = card.find("span", class_="p24_price")
                 price_str = price_tag.get_text(strip=True) if price_tag else ""
                 price_digits = re.sub(r"[^\d]", "", price_str)
@@ -212,8 +210,7 @@ def fetch_property24():
                 properties.append(prop)
             except Exception as e:
                 print(f"Property24: Error parsing card: {e}")
-        page_num += 1
-    print(f"Property24: Scraped {len(properties)} total property cards across all pages.")
+    print(f"Property24: Scraped {len(properties)} total property cards across all listed URLs.")
     return properties, True
     
 def fetch_privateproperty():
