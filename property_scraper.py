@@ -373,10 +373,10 @@ def fetch_sahometraders():
 def fetch_all_properties():
     # Only enable Property24 scraping
     fetch_funcs = [
-        # (fetch_property24, "property24"),
+        (fetch_property24, "property24"),
         (fetch_privateproperty, "privateproperty"),
         (fetch_pamgolding, "pamgolding"),
-        # (fetch_sahometraders, "sahometraders")
+        fetch_sahometraders, "sahometraders")
     ]
     all_properties = []
     successful_sources = []
