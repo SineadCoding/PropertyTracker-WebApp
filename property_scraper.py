@@ -151,38 +151,21 @@ def get_html(url):
         return None
 
 def fetch_property24():
-    source = "property24"
-    urls = [
-        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9",
-        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p2",
-        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p3",
-        "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9/p4"
-    ]
+    # Use Selenium for Property24
+    from selenium import webdriver
+    from bs4 import BeautifulSoup
+    import time
+
+    base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
+    urls = [base_url] + [f"{base_url}/p{i}" for i in range(2, 5)]  # For 4 pages (or more)
+    driver = webdriver.Chrome()
     properties = []
-    seen_links = set()
     for url in urls:
-        print(f"Scraping Property24: {url}")
-        html = get_html(url)
-        if not html:
-            print(f"[INFO] No HTML returned for {url}, skipping.")
-            continue
-        soup = BeautifulSoup(html, "html.parser")
-        cards = soup.find_all("a", class_="p24_content")
-        print(f"Cards found on {url}: {len(cards)}")
-        if not cards:
-            print(f"[INFO] No property cards found for {url}, skipping.")
-            continue
-        for card in cards:
-            try:
-                link = "https://www.property24.com" + card["href"]
-                print(f"[DEBUG] Scraped link: {link}")
-                if link in seen_links or not link:
-                    continue
-                seen_links.add(link)
-                # ...rest of your parsing logic...
-            except Exception as e:
-                print(f"Property24: Error parsing card: {e}")
-    print(f"Property24: Scraped {len(seen_links)} unique property links across all listed URLs.")
+        driver.get(url)
+        time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        # ...parse as before...
+    driver.quit()
     return properties, True
     
 def fetch_privateproperty():
