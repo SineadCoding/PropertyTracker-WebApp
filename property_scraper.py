@@ -168,15 +168,15 @@ def fetch_property24():
             continue
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.find_all("a", class_="p24_content")
+        print(f"Cards found on {url}: {len(cards)}")
         if not cards:
             print(f"[INFO] No property cards found for {url}, skipping.")
             continue
         for card in cards:
             try:
-                link_tag = card.find("a", href=True)
-                link = "https://www.property24.com" + (link_tag["href"] if link_tag else card["href"])
-                if link in seen_links:
-                    continue  # Skip duplicates
+                link = "https://www.property24.com" + card["href"]
+                if link in seen_links or not link:
+                    continue
                 seen_links.add(link)
                 price_tag = card.find("span", class_="p24_price")
                 price_str = price_tag.get_text(strip=True) if price_tag else ""
@@ -186,11 +186,11 @@ def fetch_property24():
                 title = title_tag.get_text(strip=True) if title_tag else "Industrial Property"
                 location_tag = card.find("span", class_="p24_location")
                 location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
-                address_tag = card.find("span", class_="p24_address")
-                address = address_tag.get_text(strip=True) if address_tag else ""
                 desc_tag = card.find("span", class_="p24_excerpt")
                 description = desc_tag.get_text(strip=True) if desc_tag else ""
-                size_tag = card.find("span", class_="p24_size")
+                # Size is outside <a>, so go to parent <div> and find <span class="p24_size">
+                parent_div = card.find_parent("div")
+                size_tag = parent_div.find("span", class_="p24_size") if parent_div else None
                 size = size_tag.get_text(strip=True) if size_tag else ""
                 agency = "Property24"
                 if "industrial" not in title.lower() and "industrial" not in location.lower():
@@ -199,7 +199,7 @@ def fetch_property24():
                     "title": f"{size} {title} {location}".strip(),
                     "price": price,
                     "location": location,
-                    "address": address,
+                    "address": "",
                     "description": description,
                     "agency": agency,
                     "link": link,
