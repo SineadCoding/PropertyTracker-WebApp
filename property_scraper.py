@@ -151,63 +151,55 @@ def get_html(url):
         return None
 
 def fetch_property24():
-    # Use Selenium for Property24
-    from selenium import webdriver
-    from bs4 import BeautifulSoup
-    import time
-    import re
-    from datetime import datetime
-
-    base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
-    urls = [base_url] + [f"{base_url}/p{i}" for i in range(2, 5)]  # For 4 pages (or more)
-    driver = webdriver.Chrome()
+    source = "property24"
+    url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
     properties = []
-    seen_links = set()
-    for url in urls:
-        driver.get(url)
-        time.sleep(4)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        cards = soup.find_all("a", class_="p24_content")
-        print(f"Cards found on {url}: {len(cards)}")
-        for card in cards:
-            try:
-                link = "https://www.property24.com" + card["href"]
-                if link in seen_links or not link:
-                    continue
-                seen_links.add(link)
-                price_tag = card.find("span", class_="p24_price")
-                price_str = price_tag.get_text(strip=True) if price_tag else ""
-                price_digits = re.sub(r"[^\d]", "", price_str)
-                price = int(price_digits) if price_digits else 0
-                title_tag = card.find("span", class_="p24_title")
-                title = title_tag.get_text(strip=True) if title_tag else "Industrial Property"
-                location_tag = card.find("span", class_="p24_location")
-                location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
-                desc_tag = card.find("span", class_="p24_excerpt")
-                description = desc_tag.get_text(strip=True) if desc_tag else ""
-                parent_div = card.find_parent("div")
-                size_tag = parent_div.find("span", class_="p24_size") if parent_div else None
-                size = size_tag.get_text(strip=True) if size_tag else ""
-                agency = "Property24"
-                if "industrial" not in title.lower() and "industrial" not in location.lower():
-                    continue
-                prop = {
-                    "title": f"{size} {title} {location}".strip(),
-                    "price": price,
-                    "location": location,
-                    "address": "",
-                    "description": description,
-                    "agency": agency,
-                    "link": link,
-                    "date": str(datetime.today().date()),
-                    "source": "property24",
-                    "status": "active"
-                }
-                properties.append(prop)
-            except Exception as e:
-                print(f"Property24: Error parsing card: {e}")
-    driver.quit()
-    print(f"Property24: Scraped {len(properties)} total property cards across all pages.")
+    html = get_html(url)
+    if not html:
+        print("[INFO] No HTML returned, aborting.")
+        return [], False
+    soup = BeautifulSoup(html, "html.parser")
+    cards = soup.find_all("a", class_="p24_content")
+    if not cards:
+        print("[INFO] No property cards found, aborting.")
+        return [], False
+    for card in cards:
+        try:
+            link_tag = card.find("a", href=True)
+            link = "https://www.property24.com" + (link_tag["href"] if link_tag else card["href"])
+            price_tag = card.find("span", class_="p24_price")
+            price_str = price_tag.get_text(strip=True) if price_tag else ""
+            price_digits = re.sub(r"[^\d]", "", price_str)
+            price = int(price_digits) if price_digits else 0
+            title_tag = card.find("span", class_="p24_title")
+            title = title_tag.get_text(strip=True) if title_tag else "Industrial Property"
+            location_tag = card.find("span", class_="p24_location")
+            location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
+            address_tag = card.find("span", class_="p24_address")
+            address = address_tag.get_text(strip=True) if address_tag else ""
+            desc_tag = card.find("span", class_="p24_excerpt")
+            description = desc_tag.get_text(strip=True) if desc_tag else ""
+            size_tag = card.find("span", class_="p24_size")
+            size = size_tag.get_text(strip=True) if size_tag else ""
+            agency = "Property24"
+            if "industrial" not in title.lower() and "industrial" not in location.lower():
+                continue
+            prop = {
+                "title": f"{size} {title} {location}".strip(),
+                "price": price,
+                "location": location,
+                "address": address,
+                "description": description,
+                "agency": agency,
+                "link": link,
+                "date": str(datetime.today().date()),
+                "source": source,
+                "status": "active"
+            }
+            properties.append(prop)
+        except Exception as e:
+            print(f"Property24: Error parsing card: {e}")
+    print(f"Property24: Scraped {len(properties)} property cards from first page.")
     return properties, True
     
 def fetch_privateproperty():
