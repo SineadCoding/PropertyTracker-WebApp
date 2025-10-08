@@ -154,17 +154,28 @@ def fetch_property24():
     source = "property24"
     base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
     properties = []
+    seen_first_links = set()
     page_num = 1
     while True:
-        # Only use /pN for N > 1
         url = base_url if page_num == 1 else f"{base_url}/p{page_num}"
+        print(f"Scraping Property24 page {page_num}: {url}")
         html = get_html(url)
         if not html:
+            print(f"[INFO] No HTML returned for page {page_num}, stopping pagination.")
             break
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.find_all("a", class_="p24_content")
         if not cards:
+            print(f"[INFO] No property cards found on page {page_num}, stopping pagination.")
             break
+        # Detect duplicate pages (Property24 returns last page again if you go too far)
+        first_card = cards[0]
+        link_tag = first_card.find("a", href=True)
+        first_link = "https://www.property24.com" + (link_tag["href"] if link_tag else first_card["href"])
+        if first_link in seen_first_links:
+            print(f"[INFO] First listing on page {page_num} has already been seen. Reached last page. Stopping.")
+            break
+        seen_first_links.add(first_link)
         for card in cards:
             try:
                 link_tag = card.find("a", href=True)
