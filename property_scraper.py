@@ -156,6 +156,7 @@ def fetch_property24():
     properties = []
     page_num = 1
     while True:
+        # Only use /pN for N > 1
         url = base_url if page_num == 1 else f"{base_url}/p{page_num}"
         html = get_html(url)
         if not html:
@@ -203,7 +204,7 @@ def fetch_property24():
         page_num += 1
     print(f"Property24: Scraped {len(properties)} total property cards across all pages.")
     return properties, True
-
+    
 def fetch_privateproperty():
     source = "privateproperty"
     base_url = "https://www.privateproperty.co.za"
