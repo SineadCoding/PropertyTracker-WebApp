@@ -376,7 +376,7 @@ def fetch_all_properties():
         (fetch_property24, "property24"),
         (fetch_privateproperty, "privateproperty"),
         (fetch_pamgolding, "pamgolding"),
-        fetch_sahometraders, "sahometraders")
+        (fetch_sahometraders, "sahometraders")
     ]
     all_properties = []
     successful_sources = []
