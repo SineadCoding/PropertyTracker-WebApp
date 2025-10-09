@@ -150,56 +150,97 @@ def get_html(url):
         print(f"[ERROR] Request failed for {url} -> {e}")
         return None
 
+def get_html_property24(url):
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": random.choice(["en-US,en;q=0.9", "en-GB,en;q=0.8", "en;q=0.7"]),
+        "Referer": random.choice([
+            "https://www.google.com/",
+            "https://www.bing.com/",
+            "https://duckduckgo.com/",
+            "https://www.yahoo.com/"
+        ]),
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1"
+    }
+    time.sleep(random.uniform(8, 20))  # Longer delay for safety
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Request failed for {url} -> {e}")
+        return None
+
 def fetch_property24():
     source = "property24"
-    url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
+    base_url = "https://www.property24.com/industrial-property-for-sale/alias/garden-route/1/western-cape/9"
     properties = []
-    html = get_html(url)
-    if not html:
-        print("[INFO] No HTML returned, aborting.")
-        return [], False
-    soup = BeautifulSoup(html, "html.parser")
-    cards = soup.find_all("a", class_="p24_content")
-    if not cards:
-        print("[INFO] No property cards found, aborting.")
-        return [], False
-    for card in cards:
-        try:
-            link_tag = card.find("a", href=True)
-            link = "https://www.property24.com" + (link_tag["href"] if link_tag else card["href"])
-            price_tag = card.find("span", class_="p24_price")
-            price_str = price_tag.get_text(strip=True) if price_tag else ""
-            price_digits = re.sub(r"[^\d]", "", price_str)
-            price = int(price_digits) if price_digits else 0
-            title_tag = card.find("span", class_="p24_title")
-            title = title_tag.get_text(strip=True) if title_tag else "Industrial Property"
-            location_tag = card.find("span", class_="p24_location")
-            location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
-            address_tag = card.find("span", class_="p24_address")
-            address = address_tag.get_text(strip=True) if address_tag else ""
-            desc_tag = card.find("span", class_="p24_excerpt")
-            description = desc_tag.get_text(strip=True) if desc_tag else ""
-            size_tag = card.find("span", class_="p24_size")
-            size = size_tag.get_text(strip=True) if size_tag else ""
-            agency = "Property24"
-            if "industrial" not in title.lower() and "industrial" not in location.lower():
-                continue
-            prop = {
-                "title": f"{size} {title} {location}".strip(),
-                "price": price,
-                "location": location,
-                "address": address,
-                "description": description,
-                "agency": agency,
-                "link": link,
-                "date": str(datetime.today().date()),
-                "source": source,
-                "status": "active"
-            }
-            properties.append(prop)
-        except Exception as e:
-            print(f"Property24: Error parsing card: {e}")
-    print(f"Property24: Scraped {len(properties)} property cards from first page.")
+    page_num = 1
+    seen_links = set()
+    while True:
+        if page_num == 1:
+            url = base_url
+        else:
+            url = f"{base_url}/p{page_num}"
+        print(f"[INFO] Scraping Property24 page {page_num}: {url}")
+        html = get_html_property24(url)
+        if not html:
+            break
+        soup = BeautifulSoup(html, "html.parser")
+        cards = soup.find_all("a", class_="p24_content")
+        if not cards:
+            print(f"[INFO] No property cards found on page {page_num}. Stopping pagination.")
+            break
+        new_props = []
+        for card in cards:
+            try:
+                href = card.get("href")
+                link = "https://www.property24.com" + href if href and href.startswith("/") else href
+                if not link or link in seen_links:
+                    continue
+                seen_links.add(link)
+                price_tag = card.find("span", class_="p24_price")
+                price_str = price_tag.get_text(strip=True) if price_tag else ""
+                price_digits = re.sub(r"[^\d]", "", price_str)
+                price = int(price_digits) if price_digits else 0
+                title_tag = card.find("span", class_="p24_title")
+                title = title_tag.get_text(strip=True) if title_tag else "Industrial Property"
+                location_tag = card.find("span", class_="p24_location")
+                location = location_tag.get_text(strip=True) if location_tag else "Garden Route"
+                address_tag = card.find("span", class_="p24_address")
+                address = address_tag.get_text(strip=True) if address_tag else ""
+                desc_tag = card.find("span", class_="p24_excerpt")
+                description = desc_tag.get_text(strip=True) if desc_tag else ""
+                size_tag = card.find("span", class_="p24_size")
+                size = size_tag.get_text(strip=True) if size_tag else ""
+                agency = "Property24"
+                # If you want to filter for only "industrial" listings, uncomment below:
+                # if "industrial" not in title.lower() and "industrial" not in location.lower():
+                #     continue
+                prop = {
+                    "title": f"{size} {title} {location}".strip(),
+                    "price": price,
+                    "location": location,
+                    "address": address,
+                    "description": description,
+                    "agency": agency,
+                    "link": link,
+                    "date": str(datetime.today().date()),
+                    "source": source,
+                    "status": "active"
+                }
+                new_props.append(prop)
+            except Exception as e:
+                print(f"Property24: Error parsing card: {e}")
+        if not new_props:
+            print(f"[INFO] No new property cards found on page {page_num}. Stopping pagination.")
+            break
+        properties.extend(new_props)
+        print(f"[INFO] Scraped {len(new_props)} properties from page {page_num}.")
+        page_num += 1
+    print(f"[INFO] Property24: Scraped a total of {len(properties)} property cards from all pages.")
     return properties, True
     
 def fetch_privateproperty():
