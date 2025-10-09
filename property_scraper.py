@@ -6,8 +6,8 @@ import random
 import time
 import json
 from models import Property
-
 import os
+
 LISTINGS_FILE = "listings.json"
 UNVERIFIED_LIMIT = 3
 
@@ -89,40 +89,20 @@ def merge_properties(new_props, old_props, successful_sources):
                     merged.append(p)
 
     return merged
-import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
-import re
-import random
-import time
-import json
-import re
-import random
-from models import Property
-import time
-import random
-import json
 
-# ✅ List of User-Agents to rotate
 USER_AGENTS = [
-    # Chrome (Windows, Mac, Linux, Android, iOS)
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-    # Firefox
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13.3; rv:120.0) Gecko/20100101 Firefox/120.0",
     "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
-    # Edge
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
-    # Safari (Mac, iOS)
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15",
     "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-    # Googlebot
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-    # Bingbot
     "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
 ]
 
@@ -141,7 +121,6 @@ def get_html(url):
         "Upgrade-Insecure-Requests": "1"
     }
     try:
-        # Random delay between 2 and 7 seconds
         time.sleep(random.uniform(2, 7))
         response = requests.get(url, headers=headers, timeout=12)
         response.raise_for_status()
@@ -164,9 +143,10 @@ def get_html_property24(url):
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1"
     }
-    time.sleep(random.uniform(8, 20))  # Longer delay for safety
+    time.sleep(random.uniform(15, 40))  # Increased delay for anti-blocking
     try:
         response = requests.get(url, headers=headers, timeout=15)
+        print(f"Status code for {url}: {response.status_code}")  # Diagnostic
         response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
@@ -186,10 +166,16 @@ def fetch_property24():
             url = f"{base_url}/p{page_num}"
         print(f"[INFO] Scraping Property24 page {page_num}: {url}")
         html = get_html_property24(url)
+        print(f"[INFO] HTML length for {url}: {len(html) if html else 'No HTML'}")
+        # Save HTML for manual inspection/diagnosis
+        with open(f"property24_page_{page_num}.html", "w", encoding="utf-8") as f:
+            f.write(html if html else "")
         if not html:
+            print(f"[INFO] No HTML received for page {page_num}. Stopping.")
             break
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.find_all("a", class_="p24_content")
+        print(f"[INFO] Found {len(cards)} cards on page {page_num}")
         if not cards:
             print(f"[INFO] No property cards found on page {page_num}. Stopping pagination.")
             break
@@ -216,9 +202,6 @@ def fetch_property24():
                 size_tag = card.find("span", class_="p24_size")
                 size = size_tag.get_text(strip=True) if size_tag else ""
                 agency = "Property24"
-                # If you want to filter for only "industrial" listings, uncomment below:
-                # if "industrial" not in title.lower() and "industrial" not in location.lower():
-                #     continue
                 prop = {
                     "title": f"{size} {title} {location}".strip(),
                     "price": price,
@@ -239,10 +222,14 @@ def fetch_property24():
             break
         properties.extend(new_props)
         print(f"[INFO] Scraped {len(new_props)} properties from page {page_num}.")
+        # Print out the first card title for sanity check
+        if len(cards) > 0:
+            first_title = cards[0].find("span", class_="p24_title")
+            print("First card title:", first_title.get_text(strip=True) if first_title else "No Title")
         page_num += 1
     print(f"[INFO] Property24: Scraped a total of {len(properties)} property cards from all pages.")
     return properties, True
-    
+
 def fetch_privateproperty():
     source = "privateproperty"
     base_url = "https://www.privateproperty.co.za"
@@ -312,7 +299,6 @@ def fetch_privateproperty():
         print(f"PrivateProperty: First property: {properties[0]}")
     return properties, True
 
-
 def fetch_pamgolding():
     source = "pamgolding"
     url = "https://www.pamgolding.co.za/property-search/commercial-industrial-properties-for-sale-garden-route/510"
@@ -321,8 +307,7 @@ def fetch_pamgolding():
         return [], False
     soup = BeautifulSoup(html, "html.parser")
     properties = []
-    # Updated selector for Pam Golding (based on provided HTML)
-    cards = soup.find_all("article", class_="pgp-property__item")  # Already correct
+    cards = soup.find_all("article", class_="pgp-property__item")
     print(f"Pam Golding: Found {len(cards)} property cards.")
     for card in cards:
         try:
@@ -353,7 +338,6 @@ def fetch_pamgolding():
     if properties:
         print(f"Pam Golding: First property: {properties[0]}")
     return properties, True
-
 
 def fetch_sahometraders():
     source = "sahometraders"
@@ -413,10 +397,7 @@ def fetch_sahometraders():
         print(f"SAHometraders: First property: {properties[0]}")
     return properties, True
 
-# Currency exchange scraping
-
 def fetch_all_properties():
-    # Only enable Property24 scraping
     fetch_funcs = [
         (fetch_property24, "property24"),
         (fetch_privateproperty, "privateproperty"),
@@ -445,8 +426,8 @@ def fetch_all_properties():
             deduped_properties.append(prop)
             seen_links.add(link)
     return deduped_properties, successful_sources
+
 def get_exchange_rate():
-    # Example: scrape from exchangerate.host
     try:
         resp = requests.get("https://open.er-api.com/v6/latest/ZAR", timeout=10)
         data = resp.json()
